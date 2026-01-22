@@ -182,6 +182,7 @@ VOID USBX_DEVICE_HID_UPS_Task(VOID)
         ups_battery_state.charging = 0;
         ups_battery_state.remaining_capacity = 95;
         ups_battery_state.runtime_to_empty = 120; /* 2 hours */
+        ups_battery_state.below_capacity_limit = 0; /* Not low yet */
       }
       else
       {
@@ -191,6 +192,13 @@ VOID USBX_DEVICE_HID_UPS_Task(VOID)
         ups_battery_state.charging = 1;
         ups_battery_state.remaining_capacity = 95;
         ups_battery_state.runtime_to_empty = 3600;
+        ups_battery_state.below_capacity_limit = 0; /* AC present */
+      }
+
+      /* Check if battery is below capacity limit (10% threshold) */
+      if (ups_battery_state.remaining_capacity <= 10)
+      {
+        ups_battery_state.below_capacity_limit = 1;
       }
 
       /* Build the report */
@@ -222,6 +230,16 @@ VOID USBX_DEVICE_HID_UPS_UpdateBatteryState(UPS_BatteryStateTypeDef *battery_sta
   if (battery_state != NULL)
   {
     ups_battery_state = *battery_state;
+
+    /* Automatically set below_capacity_limit flag based on battery level */
+    if (ups_battery_state.remaining_capacity <= 10)
+    {
+      ups_battery_state.below_capacity_limit = 1;
+    }
+    else
+    {
+      ups_battery_state.below_capacity_limit = 0;
+    }
 
     /* Check if the device is configured */
     if ((device->ux_slave_device_state == UX_DEVICE_CONFIGURED) && (hid_ups != UX_NULL))
