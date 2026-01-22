@@ -46,8 +46,7 @@
 UX_SLAVE_CLASS_HID *hid_ups;
 __IO uint8_t User_Button_State = 0U;
 
-/* Periodic report counter - send report every ~2 seconds */
-static uint32_t report_counter = 0;
+/* Periodic report period - send report every ~2 seconds */
 #define REPORT_PERIOD_MS 2000  /* Send INPUT report every 2 seconds */
 
 /* Default battery state - initialized to simulate a UPS on AC power with full battery */
