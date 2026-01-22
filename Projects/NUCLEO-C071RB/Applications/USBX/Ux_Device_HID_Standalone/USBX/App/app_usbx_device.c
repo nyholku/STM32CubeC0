@@ -50,9 +50,9 @@
 #pragma data_alignment=4
 #endif
 __ALIGN_BEGIN static UCHAR ux_device_byte_pool_buffer[UX_DEVICE_APP_MEM_POOL_SIZE] __ALIGN_END;
-static ULONG hid_mouse_interface_number;
-static ULONG hid_mouse_configuration_number;
-static UX_SLAVE_CLASS_HID_PARAMETER hid_mouse_parameter;
+static ULONG hid_ups_interface_number;
+static ULONG hid_ups_configuration_number;
+static UX_SLAVE_CLASS_HID_PARAMETER hid_ups_parameter;
 
 /* USER CODE BEGIN PV */
 extern uint8_t User_Button_State;
@@ -124,35 +124,35 @@ UINT MX_USBX_Device_Init(VOID)
     /* USER CODE END USBX_DEVICE_INITIALIZE_ERROR */
   }
 
-  /* Initialize the hid mouse class parameters for the device */
-  hid_mouse_parameter.ux_slave_class_hid_instance_activate         = USBD_HID_Mouse_Activate;
-  hid_mouse_parameter.ux_slave_class_hid_instance_deactivate       = USBD_HID_Mouse_Deactivate;
-  hid_mouse_parameter.ux_device_class_hid_parameter_report_address = USBD_HID_ReportDesc(INTERFACE_HID_MOUSE);
-  hid_mouse_parameter.ux_device_class_hid_parameter_report_length  = USBD_HID_ReportDesc_length(INTERFACE_HID_MOUSE);
-  hid_mouse_parameter.ux_device_class_hid_parameter_report_id      = UX_FALSE;
-  hid_mouse_parameter.ux_device_class_hid_parameter_callback       = USBD_HID_Mouse_SetReport;
-  hid_mouse_parameter.ux_device_class_hid_parameter_get_callback   = USBD_HID_Mouse_GetReport;
+  /* Initialize the hid UPS class parameters for the device */
+  hid_ups_parameter.ux_slave_class_hid_instance_activate         = USBD_HID_UPS_Activate;
+  hid_ups_parameter.ux_slave_class_hid_instance_deactivate       = USBD_HID_UPS_Deactivate;
+  hid_ups_parameter.ux_device_class_hid_parameter_report_address = USBD_HID_ReportDesc(INTERFACE_HID_UPS);
+  hid_ups_parameter.ux_device_class_hid_parameter_report_length  = USBD_HID_ReportDesc_length(INTERFACE_HID_UPS);
+  hid_ups_parameter.ux_device_class_hid_parameter_report_id      = UX_TRUE;
+  hid_ups_parameter.ux_device_class_hid_parameter_callback       = USBD_HID_UPS_SetReport;
+  hid_ups_parameter.ux_device_class_hid_parameter_get_callback   = USBD_HID_UPS_GetReport;
 
-  /* USER CODE BEGIN HID_MOUSE_PARAMETER */
+  /* USER CODE BEGIN HID_UPS_PARAMETER */
 
-  /* USER CODE END HID_MOUSE_PARAMETER */
+  /* USER CODE END HID_UPS_PARAMETER */
 
-  /* Get hid mouse configuration number */
-  hid_mouse_configuration_number = USBD_Get_Configuration_Number(CLASS_TYPE_HID, INTERFACE_HID_MOUSE);
+  /* Get hid UPS configuration number */
+  hid_ups_configuration_number = USBD_Get_Configuration_Number(CLASS_TYPE_HID, INTERFACE_HID_UPS);
 
-  /* Find hid mouse interface number */
-  hid_mouse_interface_number = USBD_Get_Interface_Number(CLASS_TYPE_HID, INTERFACE_HID_MOUSE);
+  /* Find hid UPS interface number */
+  hid_ups_interface_number = USBD_Get_Interface_Number(CLASS_TYPE_HID, INTERFACE_HID_UPS);
 
-  /* Initialize the device hid Mouse class */
+  /* Initialize the device hid UPS class */
   if (ux_device_stack_class_register(_ux_system_slave_class_hid_name,
                                      ux_device_class_hid_entry,
-                                     hid_mouse_configuration_number,
-                                     hid_mouse_interface_number,
-                                     &hid_mouse_parameter) != UX_SUCCESS)
+                                     hid_ups_configuration_number,
+                                     hid_ups_interface_number,
+                                     &hid_ups_parameter) != UX_SUCCESS)
   {
-    /* USER CODE BEGIN USBX_DEVICE_HID_MOUSE_REGISTER_ERROR */
+    /* USER CODE BEGIN USBX_DEVICE_HID_UPS_REGISTER_ERROR */
     return UX_ERROR;
-    /* USER CODE END USBX_DEVICE_HID_MOUSE_REGISTER_ERROR */
+    /* USER CODE END USBX_DEVICE_HID_UPS_REGISTER_ERROR */
   }
 
   /* USER CODE BEGIN MX_USBX_Device_Init1 */
@@ -223,7 +223,7 @@ ULONG _ux_utility_time_get(VOID)
 VOID USBX_Device_Process(VOID *arg)
 {
   ux_device_stack_tasks_run();
-  USBX_DEVICE_HID_MOUSE_Task();
+  USBX_DEVICE_HID_UPS_Task();
 }
 
 

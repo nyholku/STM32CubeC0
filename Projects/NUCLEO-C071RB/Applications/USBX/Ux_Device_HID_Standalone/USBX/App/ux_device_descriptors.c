@@ -49,7 +49,7 @@ uint8_t UserClassInstance[USBD_MAX_CLASS_INTERFACES] = {
 };
 
 uint8_t UserHIDInterface[] = {
-  INTERFACE_HID_MOUSE,
+  INTERFACE_HID_UPS,
 };
 
 /* The generic device descriptor buffer that will be filled by builder
@@ -146,6 +146,54 @@ __ALIGN_END =
 };
 
 #endif /* USBD_HID_MOUSE_ACTIVATED == 1U */
+
+#if USBD_HID_UPS_ACTIVATED == 1U
+
+#if defined ( __ICCARM__ ) /* IAR Compiler */
+#pragma data_alignment=4
+#endif /* defined ( __ICCARM__ ) */
+__ALIGN_BEGIN uint8_t USBD_HID_UPS_ReportDesc[]
+__ALIGN_END =
+{
+  /* USER CODE BEGIN USBD_HID_UPS_ReportDesc                   */
+  0x05, 0x84,        /* Usage Page (Power Device)              */
+  0x09, 0x04,        /* Usage (UPS)                            */
+  0xA1, 0x01,        /* Collection (Application)               */
+  0x09, 0x24,        /*   Usage (Sink)                         */
+  0xA1, 0x02,        /*   Collection (Logical)                 */
+  0x85, 0x01,        /*     Report ID (1)                      */
+  0x05, 0x85,        /*     Usage Page (Battery System)        */
+  0x09, 0x2C,        /*     Usage (Capacity Mode)              */
+  0x09, 0x42,        /*     Usage (BelowCapacityLimit)         */
+  0x09, 0x44,        /*     Usage (Charging)                   */
+  0x09, 0x45,        /*     Usage (Discharging)                */
+  0x09, 0xD0,        /*     Usage (ACPresent)                  */
+  0x15, 0x00,        /*     Logical Minimum (0)                */
+  0x25, 0x01,        /*     Logical Maximum (1)                */
+  0x75, 0x01,        /*     Report Size (1)                    */
+  0x95, 0x05,        /*     Report Count (5)                   */
+  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+  0x75, 0x03,        /*     Report Size (3)                    */
+  0x95, 0x01,        /*     Report Count (1)                   */
+  0x81, 0x01,        /*     Input (Const,Array,Abs)            */
+  0x09, 0x66,        /*     Usage (RemainingCapacity)          */
+  0x15, 0x00,        /*     Logical Minimum (0)                */
+  0x26, 0xFF, 0x00,  /*     Logical Maximum (255)              */
+  0x75, 0x08,        /*     Report Size (8)                    */
+  0x95, 0x01,        /*     Report Count (1)                   */
+  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+  0x09, 0x68,        /*     Usage (RunTimeToEmpty)             */
+  0x15, 0x00,        /*     Logical Minimum (0)                */
+  0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
+  0x75, 0x10,        /*     Report Size (16)                   */
+  0x95, 0x01,        /*     Report Count (1)                   */
+  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+  0xC0,              /*   End Collection                       */
+  /* USER CODE END USBD_HID_UPS_ReportDesc                     */
+  0xC0               /* End Collection                         */
+};
+
+#endif /* USBD_HID_UPS_ACTIVATED == 1U */
 
 /* USER CODE BEGIN PV1 */
 
@@ -375,6 +423,9 @@ uint8_t *USBD_HID_ReportDesc(uint8_t hid_type)
     case INTERFACE_HID_MOUSE:
       pHidReportDesc = USBD_HID_MOUSE_ReportDesc;
       break;
+    case INTERFACE_HID_UPS:
+      pHidReportDesc = USBD_HID_UPS_ReportDesc;
+      break;
     default:
       break;
   }
@@ -404,6 +455,9 @@ uint16_t USBD_HID_ReportDesc_length(uint8_t hid_type)
   {
     case INTERFACE_HID_MOUSE:
       ReportDesc_Size = sizeof(USBD_HID_MOUSE_ReportDesc);
+      break;
+    case INTERFACE_HID_UPS:
+      ReportDesc_Size = sizeof(USBD_HID_UPS_ReportDesc);
       break;
     default:
       break;
@@ -687,6 +741,39 @@ uint8_t  USBD_FrameWork_AddToConfDesc(USBD_DevClassHandleTypeDef *pdev, uint8_t 
 
 #endif /* USBD_HID_MOUSE_ACTIVATED == 1U */
 
+#if USBD_HID_UPS_ACTIVATED == 1U
+
+        case INTERFACE_HID_UPS:
+
+          /* Find the first available interface slot and Assign number of interfaces */
+          interface = USBD_FrameWork_FindFreeIFNbr(pdev);
+          pdev->tclasslist[pdev->classId].NumIf = 1U;
+          pdev->tclasslist[pdev->classId].Ifs[0] = interface;
+
+          /* Assign endpoint numbers */
+          pdev->tclasslist[pdev->classId].NumEps = 1U; /* EP_IN */
+
+          /* Check the current speed to assign endpoint IN */
+          if (pdev->Speed == USBD_HIGH_SPEED)
+          {
+            /* Assign IN Endpoint */
+            USBD_FrameWork_AssignEp(pdev, USBD_HID_UPS_EPIN_ADDR,
+                                    USBD_EP_TYPE_INTR, USBD_HID_UPS_EPIN_HS_MPS);
+          }
+          else
+          {
+            /* Assign IN Endpoint */
+            USBD_FrameWork_AssignEp(pdev, USBD_HID_UPS_EPIN_ADDR,
+                                    USBD_EP_TYPE_INTR, USBD_HID_UPS_EPIN_FS_MPS);
+          }
+
+          /* Configure and Append the Descriptor */
+          USBD_FrameWork_HID_Desc(pdev, (uint32_t)pCmpstConfDesc, &pdev->CurrConfDescSz);
+
+          break;
+
+#endif /* USBD_HID_UPS_ACTIVATED == 1U */
+
         default:
           break;
       }
@@ -844,6 +931,48 @@ static void  USBD_FrameWork_HID_Desc(USBD_DevClassHandleTypeDef *pdev,
 
       break;
 #endif /* USBD_HID_MOUSE_ACTIVATED == 1U */
+
+#if USBD_HID_UPS_ACTIVATED == 1U
+    case INTERFACE_HID_UPS:
+
+      /* Append HID Interface descriptor to Configuration descriptor */
+      __USBD_FRAMEWORK_SET_IF(pdev->tclasslist[pdev->classId].Ifs[0], 0U,
+                              (uint8_t)(pdev->tclasslist[pdev->classId].NumEps),
+                              UX_DEVICE_CLASS_HID_CLASS,
+                              0x00U, INTERFACE_HID_UPS, 0U);
+
+      /* Append HID Functional descriptor to Configuration descriptor */
+      pHidDesc = ((USBD_HIDDescTypedef *)(pConf + *Sze));
+      pHidDesc->bLength = (uint8_t)sizeof(USBD_HIDDescTypedef);
+      pHidDesc->bDescriptorType = UX_DEVICE_CLASS_HID_DESCRIPTOR_HID;
+      pHidDesc->bcdHID = 0x0111U;
+      pHidDesc->bCountryCode = 0x00U;
+      pHidDesc->bNumDescriptors = 0x01U;
+      pHidDesc->bHIDDescriptorType = 0x22U;
+      pHidDesc->wDescriptorLength = USBD_HID_ReportDesc_length(INTERFACE_HID_UPS);
+      *Sze += (uint32_t)sizeof(USBD_HIDDescTypedef);
+
+      if (pdev->Speed == USBD_HIGH_SPEED)
+      {
+        /* Append Endpoint descriptor to Configuration descriptor */
+        __USBD_FRAMEWORK_SET_EP(pdev->tclasslist[pdev->classId].Eps[0].add,
+                                USBD_EP_TYPE_INTR,
+                                (uint16_t)pdev->tclasslist[pdev->classId].Eps[0].size,
+                                USBD_HID_UPS_EPIN_HS_BINTERVAL,
+                                USBD_HID_UPS_EPIN_FS_BINTERVAL);
+      }
+      else
+      {
+        /* Append Endpoint descriptor to Configuration descriptor */
+        __USBD_FRAMEWORK_SET_EP(pdev->tclasslist[pdev->classId].Eps[0].add,
+                                USBD_EP_TYPE_INTR,
+                                (uint16_t)pdev->tclasslist[pdev->classId].Eps[0].size,
+                                USBD_HID_UPS_EPIN_HS_BINTERVAL,
+                                USBD_HID_UPS_EPIN_FS_BINTERVAL);
+      }
+
+      break;
+#endif /* USBD_HID_UPS_ACTIVATED == 1U */
 
     default:
       break;

@@ -1,9 +1,9 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    app_usbx_device.h
+  * @file    ux_device_ups.h
   * @author  MCD Application Team
-  * @brief   USBX Device applicative header file
+  * @brief   USBX Device HID UPS applicative header file
   ******************************************************************************
   * @attention
   *
@@ -18,32 +18,38 @@
   */
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __APP_USBX_DEVICE_H__
-#define __APP_USBX_DEVICE_H__
+#ifndef __UX_DEVICE_UPS_H__
+#define __UX_DEVICE_UPS_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 /* Includes ------------------------------------------------------------------*/
 #include "ux_api.h"
-#include "ux_device_ups.h"
-#include "ux_device_descriptors.h"
-#include "ux_dcd_stm32.h"
-
+#include "ux_device_class_hid.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "main.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 
+/* UPS Battery State structure */
+typedef struct
+{
+  uint8_t ac_present;              /* AC power present flag */
+  uint8_t charging;                /* Battery charging flag */
+  uint8_t discharging;             /* Battery discharging flag */
+  uint8_t below_capacity_limit;    /* Below capacity limit flag */
+  uint8_t capacity_mode;           /* Capacity mode */
+  uint8_t remaining_capacity;      /* Remaining battery capacity (0-100%) */
+  uint16_t runtime_to_empty;       /* Runtime to empty in minutes */
+} UPS_BatteryStateTypeDef;
+
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
-#define UX_DEVICE_APP_MEM_POOL_SIZE         3*1024
-#define USBX_DEVICE_MEMORY_STACK_SIZE       3*1024
-
 /* USER CODE BEGIN EC */
 
 /* USER CODE END EC */
@@ -54,11 +60,16 @@ extern "C" {
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-UINT MX_USBX_Device_Init(VOID);
+VOID USBD_HID_UPS_Activate(VOID *hid_instance);
+VOID USBD_HID_UPS_Deactivate(VOID *hid_instance);
+UINT USBD_HID_UPS_SetReport(UX_SLAVE_CLASS_HID *hid_instance,
+                            UX_SLAVE_CLASS_HID_EVENT *hid_event);
+UINT USBD_HID_UPS_GetReport(UX_SLAVE_CLASS_HID *hid_instance,
+                            UX_SLAVE_CLASS_HID_EVENT *hid_event);
 
 /* USER CODE BEGIN EFP */
-VOID USBX_APP_Device_Init(VOID);
-VOID USBX_Device_Process(VOID *arg);
+VOID USBX_DEVICE_HID_UPS_Task(VOID);
+VOID USBX_DEVICE_HID_UPS_UpdateBatteryState(UPS_BatteryStateTypeDef *battery_state);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -73,4 +84,4 @@ VOID USBX_Device_Process(VOID *arg);
 #ifdef __cplusplus
 }
 #endif
-#endif /* __APP_USBX_DEVICE_H__ */
+#endif  /* __UX_DEVICE_UPS_H__ */

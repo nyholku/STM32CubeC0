@@ -42,7 +42,8 @@ extern "C" {
 #define USBD_MAX_CLASS_INTERFACES                      12U
 
 #define USBD_HID_CLASS_ACTIVATED                       1U
-#define USBD_HID_MOUSE_ACTIVATED                       1U
+#define USBD_HID_MOUSE_ACTIVATED                       0U
+#define USBD_HID_UPS_ACTIVATED                         1U
 
 #define USBD_CONFIG_MAXPOWER                           25U
 #define USBD_COMPOSITE_USE_IAD                         0U
@@ -75,6 +76,7 @@ typedef enum
   INTERFACE_HID_CUSTOM     = 0,
   INTERFACE_HID_KEYBOARD   = 1,
   INTERFACE_HID_MOUSE      = 2,
+  INTERFACE_HID_UPS        = 3,
 } USBD_HIDInterfaceTypeDef;
 
 /* USB Endpoint handle structure */
@@ -250,8 +252,8 @@ uint16_t USBD_HID_ReportDesc_length(uint8_t hid_type);
 #define USBD_PID                                      22288
 #define USBD_LANGID_STRING                            1033
 #define USBD_MANUFACTURER_STRING                      "STMicroelectronics"
-#define USBD_PRODUCT_STRING                           "STM32 HID Mouse Device"
-#define USBD_SERIAL_NUMBER                            "HID001"
+#define USBD_PRODUCT_STRING                           "STM32 HID UPS Device"
+#define USBD_SERIAL_NUMBER                            "UPS001"
 
 #define USB_DESC_TYPE_INTERFACE                       0x04U
 #define USB_DESC_TYPE_ENDPOINT                        0x05U
@@ -284,6 +286,13 @@ uint16_t USBD_HID_ReportDesc_length(uint8_t hid_type);
 #define USBD_HID_MOUSE_EPIN_HS_MPS                    4U
 #define USBD_HID_MOUSE_EPIN_FS_BINTERVAL              5U
 #define USBD_HID_MOUSE_EPIN_HS_BINTERVAL              5U
+
+/* Device HID UPS */
+#define USBD_HID_UPS_EPIN_ADDR                        0x81U
+#define USBD_HID_UPS_EPIN_FS_MPS                      8U
+#define USBD_HID_UPS_EPIN_HS_MPS                      8U
+#define USBD_HID_UPS_EPIN_FS_BINTERVAL                10U
+#define USBD_HID_UPS_EPIN_HS_BINTERVAL                10U
 
 #ifndef USBD_CONFIG_STR_DESC_IDX
 #define USBD_CONFIG_STR_DESC_IDX                      0U
