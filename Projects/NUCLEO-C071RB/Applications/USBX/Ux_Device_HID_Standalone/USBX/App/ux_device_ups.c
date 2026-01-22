@@ -46,6 +46,10 @@
 UX_SLAVE_CLASS_HID *hid_ups;
 __IO uint8_t User_Button_State = 0U;
 
+/* Periodic report counter - send report every ~2 seconds */
+static uint32_t report_counter = 0;
+#define REPORT_PERIOD_MS 2000  /* Send INPUT report every 2 seconds */
+
 /* Default battery state - initialized to simulate a UPS on AC power with full battery */
 static UPS_BatteryStateTypeDef ups_battery_state = {
   .ac_present = 1,              /* AC power is present */
@@ -163,6 +167,9 @@ VOID USBX_DEVICE_HID_UPS_Task(VOID)
 {
   UX_SLAVE_DEVICE *device;
   UX_SLAVE_CLASS_HID_EVENT hid_event;
+  static uint32_t last_report_time = 0;
+  uint32_t current_time;
+  uint8_t send_report = 0;
 
   device = &_ux_system_slave->ux_system_slave_device;
   ux_utility_memory_set(&hid_event, 0, sizeof(UX_SLAVE_CLASS_HID_EVENT));
@@ -201,14 +208,30 @@ VOID USBX_DEVICE_HID_UPS_Task(VOID)
         ups_battery_state.below_capacity_limit = 1;
       }
 
+      /* Reset User Button state */
+      User_Button_State = 0U;
+
+      /* Force immediate report on state change */
+      send_report = 1;
+      last_report_time = HAL_GetTick();
+    }
+
+    /* Check if it's time to send a periodic report (every 2 seconds) */
+    current_time = HAL_GetTick();
+    if ((current_time - last_report_time) >= REPORT_PERIOD_MS)
+    {
+      send_report = 1;
+      last_report_time = current_time;
+    }
+
+    /* Send INPUT report if needed */
+    if (send_report)
+    {
       /* Build the report */
       BuildUPSReport(&hid_event);
 
-      /* Send an event to the hid */
+      /* Send an event to the hid (INPUT report on interrupt endpoint) */
       ux_device_class_hid_event_set(hid_ups, &hid_event);
-
-      /* Reset User Button state */
-      User_Button_State = 0U;
     }
   }
 }
