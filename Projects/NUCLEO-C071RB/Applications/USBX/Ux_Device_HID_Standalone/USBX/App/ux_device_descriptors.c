@@ -420,12 +420,16 @@ uint8_t *USBD_HID_ReportDesc(uint8_t hid_type)
 
   switch(hid_type)
   {
+#if USBD_HID_MOUSE_ACTIVATED == 1U
     case INTERFACE_HID_MOUSE:
       pHidReportDesc = USBD_HID_MOUSE_ReportDesc;
       break;
+#endif /* USBD_HID_MOUSE_ACTIVATED == 1U */
+#if USBD_HID_UPS_ACTIVATED == 1U
     case INTERFACE_HID_UPS:
       pHidReportDesc = USBD_HID_UPS_ReportDesc;
       break;
+#endif /* USBD_HID_UPS_ACTIVATED == 1U */
     default:
       break;
   }
@@ -453,12 +457,16 @@ uint16_t USBD_HID_ReportDesc_length(uint8_t hid_type)
 
   switch(hid_type)
   {
+#if USBD_HID_MOUSE_ACTIVATED == 1U
     case INTERFACE_HID_MOUSE:
       ReportDesc_Size = sizeof(USBD_HID_MOUSE_ReportDesc);
       break;
+#endif /* USBD_HID_MOUSE_ACTIVATED == 1U */
+#if USBD_HID_UPS_ACTIVATED == 1U
     case INTERFACE_HID_UPS:
       ReportDesc_Size = sizeof(USBD_HID_UPS_ReportDesc);
       break;
+#endif /* USBD_HID_UPS_ACTIVATED == 1U */
     default:
       break;
   }
