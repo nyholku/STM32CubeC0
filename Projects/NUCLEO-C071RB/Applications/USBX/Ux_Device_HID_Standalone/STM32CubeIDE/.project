@@ -617,9 +617,19 @@
 			<locationURI>PARENT-1-PROJECT_LOC/USBX/App/ux_device_descriptors.c</locationURI>
 		</link>
 		<link>
-			<name>Application/User/USBX/App/ux_device_mouse.c</name>
+			<name>Application/User/USBX/App/ux_device_ups.c</name>
 			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/USBX/App/ux_device_mouse.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/USBX/App/ux_device_ups.c</locationURI>
+		</link>
+		<link>
+			<name>Application/User/USBX/App/ux_device_ups.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/USBX/App/ux_device_ups.h</locationURI>
+		</link>
+		<link>
+			<name>Application/User/USBX/App/ux_device_descriptors.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/USBX/App/ux_device_descriptors.h</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>
