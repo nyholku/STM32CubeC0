@@ -160,7 +160,7 @@ __ALIGN_END =
   0x09, 0x04,        /* Usage (UPS)                            */
   0xA1, 0x01,        /* Collection (Application)               */
   0x09, 0x24,        /*   Usage (Sink)                         */
-  0xA1, 0x02,        /*   Collection (Logical)                 */
+  0xA1, 0x00,        /*   Collection (Physical)                */
   0x85, 0x01,        /*     Report ID (1)                      */
   0x05, 0x85,        /*     Usage Page (Battery System)        */
 
@@ -228,9 +228,9 @@ __ALIGN_END =
   0x95, 0x01,        /*     Report Count (1)                   */
   0x81, 0x02,        /*     Input (Data,Var,Abs)               */
 
-  0xC0,              /*   End Collection                       */
+  0xC0,              /*   End Collection (Physical)            */
   /* USER CODE END USBD_HID_UPS_ReportDesc                     */
-  0xC0               /* End Collection                         */
+  0xC0               /* End Collection (Application)           */
 };
 
 #endif /* USBD_HID_UPS_ACTIVATED == 1U */
