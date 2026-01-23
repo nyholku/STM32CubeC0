@@ -219,24 +219,20 @@ __ALIGN_END =
   0x55, 0x00,        /*     Unit Exponent (0)                  */
   0x81, 0x82,        /*     Input (Data,Var,Abs,Vol)           */
 
-  /* PresentStatus collection for dynamic status flags */
-  0x05, 0x84,        /*     Usage Page (Power Device)          */
-  0x09, 0x02,        /*     Usage (PresentStatus)              */
-  0xA1, 0x02,        /*     Collection (Logical)               */
-  0x05, 0x85,        /*       Usage Page (Battery System)      */
-  0x09, 0xD0,        /*       Usage (ACPresent)                */
-  0x09, 0x45,        /*       Usage (Discharging)              */
-  0x09, 0x44,        /*       Usage (Charging)                 */
-  0x09, 0x42,        /*       Usage (BelowCapacityLimit)       */
-  0x15, 0x00,        /*       Logical Minimum (0)              */
-  0x25, 0x01,        /*       Logical Maximum (1)              */
-  0x75, 0x01,        /*       Report Size (1)                  */
-  0x95, 0x04,        /*       Report Count (4)                 */
-  0x81, 0x82,        /*       Input (Data,Var,Abs,Vol)         */
-  0x75, 0x04,        /*       Report Size (4)                  */
-  0x95, 0x01,        /*       Report Count (1)                 */
-  0x81, 0x01,        /*       Input (Const,Array,Abs) - padding */
-  0xC0,              /*     End Collection (Logical)           */
+  /* Dynamic status flags (without nested collection) */
+  0x05, 0x85,        /*     Usage Page (Battery System)        */
+  0x09, 0xD0,        /*     Usage (ACPresent)                  */
+  0x09, 0x45,        /*     Usage (Discharging)                */
+  0x09, 0x44,        /*     Usage (Charging)                   */
+  0x09, 0x42,        /*     Usage (BelowCapacityLimit)         */
+  0x15, 0x00,        /*     Logical Minimum (0)                */
+  0x25, 0x01,        /*     Logical Maximum (1)                */
+  0x75, 0x01,        /*     Report Size (1)                    */
+  0x95, 0x04,        /*     Report Count (4)                   */
+  0x81, 0x82,        /*     Input (Data,Var,Abs,Vol)           */
+  0x75, 0x04,        /*     Report Size (4)                    */
+  0x95, 0x01,        /*     Report Count (1)                   */
+  0x81, 0x01,        /*     Input (Const,Array,Abs) - padding  */
 
   0xC0,              /*   End Collection (Physical)            */
   /* USER CODE END USBD_HID_UPS_ReportDesc                     */
