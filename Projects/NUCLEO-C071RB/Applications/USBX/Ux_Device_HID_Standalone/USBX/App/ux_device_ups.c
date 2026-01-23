@@ -287,8 +287,8 @@ static VOID BuildUPSReport(UX_SLAVE_CLASS_HID_EVENT *hid_event)
   uint8_t config_byte, status_byte;
   uint8_t *buf = hid_event->ux_device_class_hid_event_buffer;
 
-  /* UPS report. Report ID = 1, Length is 15 bytes total */
-  hid_event->ux_device_class_hid_event_length = 15;
+  /* UPS report length: 14 bytes of data (Report ID added by USBX stack) */
+  hid_event->ux_device_class_hid_event_length = 14;
 
   /* Byte 0: Report ID */
   buf[0] = 0x01;
