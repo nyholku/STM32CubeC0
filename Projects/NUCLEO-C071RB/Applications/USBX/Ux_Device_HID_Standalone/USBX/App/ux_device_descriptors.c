@@ -163,31 +163,71 @@ __ALIGN_END =
   0xA1, 0x02,        /*   Collection (Logical)                 */
   0x85, 0x01,        /*     Report ID (1)                      */
   0x05, 0x85,        /*     Usage Page (Battery System)        */
+
+  /* Boolean status flags */
   0x09, 0x2C,        /*     Usage (Capacity Mode)              */
   0x09, 0x42,        /*     Usage (BelowCapacityLimit)         */
   0x09, 0x44,        /*     Usage (Charging)                   */
   0x09, 0x45,        /*     Usage (Discharging)                */
   0x09, 0xD0,        /*     Usage (ACPresent)                  */
+  0x09, 0x8B,        /*     Usage (Rechargeable)               */
   0x15, 0x00,        /*     Logical Minimum (0)                */
   0x25, 0x01,        /*     Logical Maximum (1)                */
   0x75, 0x01,        /*     Report Size (1)                    */
-  0x95, 0x05,        /*     Report Count (5)                   */
+  0x95, 0x06,        /*     Report Count (6)                   */
   0x81, 0x02,        /*     Input (Data,Var,Abs)               */
-  0x75, 0x03,        /*     Report Size (3)                    */
+  0x75, 0x02,        /*     Report Size (2)                    */
   0x95, 0x01,        /*     Report Count (1)                   */
-  0x81, 0x01,        /*     Input (Const,Array,Abs)            */
+  0x81, 0x01,        /*     Input (Const,Array,Abs) - padding  */
+
+  /* RemainingCapacity (0-100%) */
   0x09, 0x66,        /*     Usage (RemainingCapacity)          */
   0x15, 0x00,        /*     Logical Minimum (0)                */
   0x26, 0xFF, 0x00,  /*     Logical Maximum (255)              */
   0x75, 0x08,        /*     Report Size (8)                    */
   0x95, 0x01,        /*     Report Count (1)                   */
   0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+
+  /* FullChargeCapacity (mAh) */
+  0x09, 0x67,        /*     Usage (FullChargeCapacity)         */
+  0x15, 0x00,        /*     Logical Minimum (0)                */
+  0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
+  0x75, 0x10,        /*     Report Size (16)                   */
+  0x95, 0x01,        /*     Report Count (1)                   */
+  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+
+  /* DesignCapacity (mAh) */
+  0x09, 0x83,        /*     Usage (DesignCapacity)             */
+  0x15, 0x00,        /*     Logical Minimum (0)                */
+  0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
+  0x75, 0x10,        /*     Report Size (16)                   */
+  0x95, 0x01,        /*     Report Count (1)                   */
+  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+
+  /* Voltage (mV) */
+  0x09, 0x30,        /*     Usage (Voltage)                    */
+  0x15, 0x00,        /*     Logical Minimum (0)                */
+  0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
+  0x75, 0x10,        /*     Report Size (16)                   */
+  0x95, 0x01,        /*     Report Count (1)                   */
+  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+
+  /* ConfigVoltage (mV) */
+  0x09, 0x40,        /*     Usage (ConfigVoltage)              */
+  0x15, 0x00,        /*     Logical Minimum (0)                */
+  0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
+  0x75, 0x10,        /*     Report Size (16)                   */
+  0x95, 0x01,        /*     Report Count (1)                   */
+  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+
+  /* RunTimeToEmpty (minutes) */
   0x09, 0x68,        /*     Usage (RunTimeToEmpty)             */
   0x15, 0x00,        /*     Logical Minimum (0)                */
   0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
   0x75, 0x10,        /*     Report Size (16)                   */
   0x95, 0x01,        /*     Report Count (1)                   */
   0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+
   0xC0,              /*   End Collection                       */
   /* USER CODE END USBD_HID_UPS_ReportDesc                     */
   0xC0               /* End Collection                         */

@@ -56,7 +56,12 @@ static UPS_BatteryStateTypeDef ups_battery_state = {
   .discharging = 0,             /* Not discharging (on AC) */
   .below_capacity_limit = 0,    /* Above capacity limit */
   .capacity_mode = 1,           /* Capacity mode enabled */
+  .rechargeable = 1,            /* Battery is rechargeable */
   .remaining_capacity = 100,    /* 100% battery */
+  .full_charge_capacity = 7200, /* 7200 mAh (typical UPS battery) */
+  .design_capacity = 7200,      /* 7200 mAh design capacity */
+  .voltage = 12000,             /* 12000 mV (12V nominal) */
+  .config_voltage = 12000,      /* 12000 mV (12V nominal) */
   .runtime_to_empty = 3600      /* 3600 minutes (60 hours) runtime */
 };
 
@@ -285,14 +290,15 @@ VOID USBX_DEVICE_HID_UPS_UpdateBatteryState(UPS_BatteryStateTypeDef *battery_sta
 static VOID BuildUPSReport(UX_SLAVE_CLASS_HID_EVENT *hid_event)
 {
   uint8_t status_byte;
+  uint8_t *buf = hid_event->ux_device_class_hid_event_buffer;
 
-  /* UPS report. Report ID = 1, Length is 5 bytes (1 report ID + 1 status + 1 capacity + 2 runtime) */
-  hid_event->ux_device_class_hid_event_length = 5;
+  /* UPS report. Report ID = 1, Length is 13 bytes total */
+  hid_event->ux_device_class_hid_event_length = 13;
 
-  /* Set Report ID */
-  hid_event->ux_device_class_hid_event_buffer[0] = 0x01;
+  /* Byte 0: Report ID */
+  buf[0] = 0x01;
 
-  /* Build status byte with battery flags */
+  /* Byte 1: Status byte with 6 boolean flags */
   status_byte = 0;
   if (ups_battery_state.capacity_mode)
     status_byte |= (1 << 0);
@@ -304,15 +310,32 @@ static VOID BuildUPSReport(UX_SLAVE_CLASS_HID_EVENT *hid_event)
     status_byte |= (1 << 3);
   if (ups_battery_state.ac_present)
     status_byte |= (1 << 4);
+  if (ups_battery_state.rechargeable)
+    status_byte |= (1 << 5);
+  buf[1] = status_byte;
 
-  hid_event->ux_device_class_hid_event_buffer[1] = status_byte;
+  /* Byte 2: Remaining capacity (0-100%) */
+  buf[2] = ups_battery_state.remaining_capacity;
 
-  /* Set remaining capacity (0-100%) */
-  hid_event->ux_device_class_hid_event_buffer[2] = ups_battery_state.remaining_capacity;
+  /* Bytes 3-4: Full charge capacity (16-bit little-endian, mAh) */
+  buf[3] = (uint8_t)(ups_battery_state.full_charge_capacity & 0xFF);
+  buf[4] = (uint8_t)((ups_battery_state.full_charge_capacity >> 8) & 0xFF);
 
-  /* Set runtime to empty (16-bit little-endian) */
-  hid_event->ux_device_class_hid_event_buffer[3] = (uint8_t)(ups_battery_state.runtime_to_empty & 0xFF);
-  hid_event->ux_device_class_hid_event_buffer[4] = (uint8_t)((ups_battery_state.runtime_to_empty >> 8) & 0xFF);
+  /* Bytes 5-6: Design capacity (16-bit little-endian, mAh) */
+  buf[5] = (uint8_t)(ups_battery_state.design_capacity & 0xFF);
+  buf[6] = (uint8_t)((ups_battery_state.design_capacity >> 8) & 0xFF);
+
+  /* Bytes 7-8: Voltage (16-bit little-endian, mV) */
+  buf[7] = (uint8_t)(ups_battery_state.voltage & 0xFF);
+  buf[8] = (uint8_t)((ups_battery_state.voltage >> 8) & 0xFF);
+
+  /* Bytes 9-10: Config voltage (16-bit little-endian, mV) */
+  buf[9] = (uint8_t)(ups_battery_state.config_voltage & 0xFF);
+  buf[10] = (uint8_t)((ups_battery_state.config_voltage >> 8) & 0xFF);
+
+  /* Bytes 11-12: Runtime to empty (16-bit little-endian, minutes) */
+  buf[11] = (uint8_t)(ups_battery_state.runtime_to_empty & 0xFF);
+  buf[12] = (uint8_t)((ups_battery_state.runtime_to_empty >> 8) & 0xFF);
 }
 
 /* USER CODE END 1 */

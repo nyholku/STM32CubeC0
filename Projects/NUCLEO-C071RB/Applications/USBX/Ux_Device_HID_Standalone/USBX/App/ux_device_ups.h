@@ -43,7 +43,12 @@ typedef struct
   uint8_t discharging;             /* Battery discharging flag */
   uint8_t below_capacity_limit;    /* Below capacity limit flag */
   uint8_t capacity_mode;           /* Capacity mode */
+  uint8_t rechargeable;            /* Battery is rechargeable */
   uint8_t remaining_capacity;      /* Remaining battery capacity (0-100%) */
+  uint16_t full_charge_capacity;   /* Full charge capacity in mAh */
+  uint16_t design_capacity;        /* Design capacity in mAh */
+  uint16_t voltage;                /* Present voltage in mV */
+  uint16_t config_voltage;         /* Nominal/config voltage in mV */
   uint16_t runtime_to_empty;       /* Runtime to empty in minutes */
 } UPS_BatteryStateTypeDef;
 
