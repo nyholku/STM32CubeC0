@@ -184,32 +184,26 @@ VOID USBX_DEVICE_HID_UPS_Task(VOID)
     /* Check if user button is pressed to simulate battery state change */
     if (User_Button_State)
     {
-      /* Simulate battery state change - toggle between AC present and discharging */
+      /* Simulate battery state change - toggle between AC present and low battery */
       if (ups_battery_state.ac_present)
       {
-        /* Simulate power loss - switch to battery */
+        /* Simulate critical battery - switch to battery at 5% */
         ups_battery_state.ac_present = 0;
         ups_battery_state.discharging = 1;
         ups_battery_state.charging = 0;
-        ups_battery_state.remaining_capacity = 95;
-        ups_battery_state.runtime_to_empty = 120; /* 2 hours */
-        ups_battery_state.below_capacity_limit = 0; /* Not low yet */
+        ups_battery_state.remaining_capacity = 5;
+        ups_battery_state.runtime_to_empty = 10; /* 10 minutes left */
+        ups_battery_state.below_capacity_limit = 1; /* Critical low battery */
       }
       else
       {
-        /* Simulate AC restoration */
+        /* Simulate AC restoration with full battery */
         ups_battery_state.ac_present = 1;
         ups_battery_state.discharging = 0;
-        ups_battery_state.charging = 1;
-        ups_battery_state.remaining_capacity = 95;
+        ups_battery_state.charging = 0;
+        ups_battery_state.remaining_capacity = 100;
         ups_battery_state.runtime_to_empty = 3600;
-        ups_battery_state.below_capacity_limit = 0; /* AC present */
-      }
-
-      /* Check if battery is below capacity limit (10% threshold) */
-      if (ups_battery_state.remaining_capacity <= 10)
-      {
-        ups_battery_state.below_capacity_limit = 1;
+        ups_battery_state.below_capacity_limit = 0; /* AC present, not low */
       }
 
       /* Reset User Button state */
