@@ -72,6 +72,8 @@ def find_ups_device(vendor_id=VENDOR_ID, product_id=PRODUCT_ID):
 def decode_report(data):
     """Decode the 15-byte HID report"""
     if len(data) < 15:
+        print(f"Warning: Expected 15 bytes, got {len(data)} bytes")
+        print(f"Raw data: {' '.join(f'{b:02X}' for b in data)}")
         return None
 
     # Byte 0: Report ID
