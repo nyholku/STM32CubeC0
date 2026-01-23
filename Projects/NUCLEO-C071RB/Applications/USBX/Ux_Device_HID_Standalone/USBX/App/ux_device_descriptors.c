@@ -164,69 +164,79 @@ __ALIGN_END =
   0x85, 0x01,        /*     Report ID (1)                      */
   0x05, 0x85,        /*     Usage Page (Battery System)        */
 
-  /* Boolean status flags */
-  0x09, 0x2C,        /*     Usage (Capacity Mode)              */
-  0x09, 0x42,        /*     Usage (BelowCapacityLimit)         */
-  0x09, 0x44,        /*     Usage (Charging)                   */
-  0x09, 0x45,        /*     Usage (Discharging)                */
-  0x09, 0xD0,        /*     Usage (ACPresent)                  */
+  /* Static battery configuration flags */
   0x09, 0x8B,        /*     Usage (Rechargeable)               */
+  0x09, 0x2C,        /*     Usage (Capacity Mode)              */
   0x15, 0x00,        /*     Logical Minimum (0)                */
   0x25, 0x01,        /*     Logical Maximum (1)                */
   0x75, 0x01,        /*     Report Size (1)                    */
-  0x95, 0x06,        /*     Report Count (6)                   */
+  0x95, 0x02,        /*     Report Count (2)                   */
   0x81, 0x02,        /*     Input (Data,Var,Abs)               */
-  0x75, 0x02,        /*     Report Size (2)                    */
+  0x75, 0x06,        /*     Report Size (6)                    */
   0x95, 0x01,        /*     Report Count (1)                   */
   0x81, 0x01,        /*     Input (Const,Array,Abs) - padding  */
 
-  /* RemainingCapacity (mAh) */
+  /* Static battery capacity fields with units */
+  0x09, 0x83,        /*     Usage (DesignCapacity)             */
+  0x09, 0x67,        /*     Usage (FullChargeCapacity)         */
+  0x15, 0x00,        /*     Logical Minimum (0)                */
+  0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
+  0x75, 0x10,        /*     Report Size (16)                   */
+  0x95, 0x02,        /*     Report Count (2)                   */
+  0x67, 0x01, 0x10, 0x10, 0x00, /* Unit (mAh)                */
+  0x55, 0x00,        /*     Unit Exponent (0)                  */
+  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+
+  /* Voltage fields with units */
+  0x09, 0x30,        /*     Usage (Voltage)                    */
+  0x05, 0x84,        /*     Usage Page (Power Device)          */
+  0x09, 0x40,        /*     Usage (ConfigVoltage)              */
+  0x05, 0x85,        /*     Usage Page (Battery System)        */
+  0x15, 0x00,        /*     Logical Minimum (0)                */
+  0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
+  0x75, 0x10,        /*     Report Size (16)                   */
+  0x95, 0x02,        /*     Report Count (2)                   */
+  0x67, 0x21, 0xD1, 0xF0, 0x00, /* Unit (Voltage)            */
+  0x55, 0x07,        /*     Unit Exponent (7) = 10^-7 = decivolts */
+  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+
+  /* Dynamic battery fields with Volatile flag */
   0x09, 0x66,        /*     Usage (RemainingCapacity)          */
   0x15, 0x00,        /*     Logical Minimum (0)                */
   0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
   0x75, 0x10,        /*     Report Size (16)                   */
   0x95, 0x01,        /*     Report Count (1)                   */
-  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+  0x67, 0x01, 0x10, 0x10, 0x00, /* Unit (mAh)                */
+  0x55, 0x00,        /*     Unit Exponent (0)                  */
+  0x81, 0x82,        /*     Input (Data,Var,Abs,Vol)           */
 
-  /* FullChargeCapacity (mAh) */
-  0x09, 0x67,        /*     Usage (FullChargeCapacity)         */
-  0x15, 0x00,        /*     Logical Minimum (0)                */
-  0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
-  0x75, 0x10,        /*     Report Size (16)                   */
-  0x95, 0x01,        /*     Report Count (1)                   */
-  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
-
-  /* DesignCapacity (mAh) */
-  0x09, 0x83,        /*     Usage (DesignCapacity)             */
-  0x15, 0x00,        /*     Logical Minimum (0)                */
-  0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
-  0x75, 0x10,        /*     Report Size (16)                   */
-  0x95, 0x01,        /*     Report Count (1)                   */
-  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
-
-  /* Voltage (mV) */
-  0x09, 0x30,        /*     Usage (Voltage)                    */
-  0x15, 0x00,        /*     Logical Minimum (0)                */
-  0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
-  0x75, 0x10,        /*     Report Size (16)                   */
-  0x95, 0x01,        /*     Report Count (1)                   */
-  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
-
-  /* ConfigVoltage (mV) */
-  0x09, 0x40,        /*     Usage (ConfigVoltage)              */
-  0x15, 0x00,        /*     Logical Minimum (0)                */
-  0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
-  0x75, 0x10,        /*     Report Size (16)                   */
-  0x95, 0x01,        /*     Report Count (1)                   */
-  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
-
-  /* RunTimeToEmpty (minutes) */
   0x09, 0x68,        /*     Usage (RunTimeToEmpty)             */
   0x15, 0x00,        /*     Logical Minimum (0)                */
   0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
   0x75, 0x10,        /*     Report Size (16)                   */
   0x95, 0x01,        /*     Report Count (1)                   */
-  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+  0x66, 0x01, 0x10,  /*     Unit (Seconds)                     */
+  0x55, 0x00,        /*     Unit Exponent (0)                  */
+  0x81, 0x82,        /*     Input (Data,Var,Abs,Vol)           */
+
+  /* PresentStatus collection for dynamic status flags */
+  0x05, 0x84,        /*     Usage Page (Power Device)          */
+  0x09, 0x02,        /*     Usage (PresentStatus)              */
+  0xA1, 0x02,        /*     Collection (Logical)               */
+  0x05, 0x85,        /*       Usage Page (Battery System)      */
+  0x09, 0xD0,        /*       Usage (ACPresent)                */
+  0x09, 0x45,        /*       Usage (Discharging)              */
+  0x09, 0x44,        /*       Usage (Charging)                 */
+  0x09, 0x42,        /*       Usage (BelowCapacityLimit)       */
+  0x15, 0x00,        /*       Logical Minimum (0)              */
+  0x25, 0x01,        /*       Logical Maximum (1)              */
+  0x75, 0x01,        /*       Report Size (1)                  */
+  0x95, 0x04,        /*       Report Count (4)                 */
+  0x81, 0x82,        /*       Input (Data,Var,Abs,Vol)         */
+  0x75, 0x04,        /*       Report Size (4)                  */
+  0x95, 0x01,        /*       Report Count (1)                 */
+  0x81, 0x01,        /*       Input (Const,Array,Abs) - padding */
+  0xC0,              /*     End Collection (Logical)           */
 
   0xC0,              /*   End Collection (Physical)            */
   /* USER CODE END USBD_HID_UPS_ReportDesc                     */

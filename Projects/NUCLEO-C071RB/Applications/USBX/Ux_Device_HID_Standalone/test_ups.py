@@ -3,21 +3,22 @@
 HID UPS Battery Monitor
 Reads and displays battery status from STM32 HID UPS device
 
-Report Format (14 bytes total):
-  Byte 0:    Report ID (0x01)
-  Byte 1:    Status flags (6 bits)
-             bit 0: Capacity Mode
-             bit 1: Below Capacity Limit
-             bit 2: Charging
-             bit 3: Discharging
-             bit 4: AC Present
-             bit 5: Rechargeable
-  Bytes 2-3:  Remaining Capacity (16-bit little-endian, mAh)
+Report Format (15 bytes total):
+  Byte 0:     Report ID (0x01)
+  Byte 1:     Config flags (2 bits)
+              bit 0: Rechargeable
+              bit 1: Capacity Mode
+  Bytes 2-3:  Design Capacity (16-bit little-endian, mAh)
   Bytes 4-5:  Full Charge Capacity (16-bit little-endian, mAh)
-  Bytes 6-7:  Design Capacity (16-bit little-endian, mAh)
-  Bytes 8-9:  Voltage (16-bit little-endian, mV)
-  Bytes 10-11: Config Voltage (16-bit little-endian, mV)
-  Bytes 12-13: Runtime to Empty (16-bit little-endian, minutes)
+  Bytes 6-7:  Voltage (16-bit little-endian, mV)
+  Bytes 8-9:  Config Voltage (16-bit little-endian, mV)
+  Bytes 10-11: Remaining Capacity (16-bit little-endian, mAh) [DYNAMIC]
+  Bytes 12-13: Runtime to Empty (16-bit little-endian, minutes) [DYNAMIC]
+  Byte 14:    PresentStatus flags (4 bits)
+              bit 0: AC Present
+              bit 1: Discharging
+              bit 2: Charging
+              bit 3: Below Capacity Limit
 """
 
 import hid
@@ -69,39 +70,42 @@ def find_ups_device(vendor_id=VENDOR_ID, product_id=PRODUCT_ID):
     return None
 
 def decode_report(data):
-    """Decode the 14-byte HID report"""
-    if len(data) < 14:
+    """Decode the 15-byte HID report"""
+    if len(data) < 15:
         return None
 
     # Byte 0: Report ID
     report_id = data[0]
 
-    # Byte 1: Status flags
-    status = data[1]
-    capacity_mode = bool(status & (1 << 0))
-    below_capacity_limit = bool(status & (1 << 1))
-    charging = bool(status & (1 << 2))
-    discharging = bool(status & (1 << 3))
-    ac_present = bool(status & (1 << 4))
-    rechargeable = bool(status & (1 << 5))
+    # Byte 1: Config flags
+    config = data[1]
+    rechargeable = bool(config & (1 << 0))
+    capacity_mode = bool(config & (1 << 1))
 
-    # Bytes 2-3: Remaining Capacity (16-bit LE, mAh)
-    remaining_capacity = struct.unpack('<H', bytes(data[2:4]))[0]
+    # Bytes 2-3: Design Capacity (16-bit LE, mAh)
+    design_capacity = struct.unpack('<H', bytes(data[2:4]))[0]
 
     # Bytes 4-5: Full Charge Capacity (16-bit LE, mAh)
     full_charge_capacity = struct.unpack('<H', bytes(data[4:6]))[0]
 
-    # Bytes 6-7: Design Capacity (16-bit LE, mAh)
-    design_capacity = struct.unpack('<H', bytes(data[6:8]))[0]
+    # Bytes 6-7: Voltage (16-bit LE, mV)
+    voltage = struct.unpack('<H', bytes(data[6:8]))[0]
 
-    # Bytes 8-9: Voltage (16-bit LE, mV)
-    voltage = struct.unpack('<H', bytes(data[8:10]))[0]
+    # Bytes 8-9: Config Voltage (16-bit LE, mV)
+    config_voltage = struct.unpack('<H', bytes(data[8:10]))[0]
 
-    # Bytes 10-11: Config Voltage (16-bit LE, mV)
-    config_voltage = struct.unpack('<H', bytes(data[10:12]))[0]
+    # Bytes 10-11: Remaining Capacity (16-bit LE, mAh) - DYNAMIC
+    remaining_capacity = struct.unpack('<H', bytes(data[10:12]))[0]
 
-    # Bytes 12-13: Runtime to Empty (16-bit LE, minutes)
+    # Bytes 12-13: Runtime to Empty (16-bit LE, minutes) - DYNAMIC
     runtime_to_empty = struct.unpack('<H', bytes(data[12:14]))[0]
+
+    # Byte 14: PresentStatus flags
+    present_status = data[14]
+    ac_present = bool(present_status & (1 << 0))
+    discharging = bool(present_status & (1 << 1))
+    charging = bool(present_status & (1 << 2))
+    below_capacity_limit = bool(present_status & (1 << 3))
 
     # Calculate battery percentage
     if full_charge_capacity > 0:
@@ -205,7 +209,7 @@ def main():
                 try:
                     # Read report (GET_REPORT request)
                     # For HID devices, we can use get_feature_report with report ID
-                    data = device.get_feature_report(0x01, 14)
+                    data = device.get_feature_report(0x01, 15)
 
                     if args.raw:
                         print(f"\nRaw data ({len(data)} bytes): {' '.join(f'{b:02X}' for b in data)}")
