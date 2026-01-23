@@ -180,11 +180,11 @@ __ALIGN_END =
   0x95, 0x01,        /*     Report Count (1)                   */
   0x81, 0x01,        /*     Input (Const,Array,Abs) - padding  */
 
-  /* RemainingCapacity (0-100%) */
+  /* RemainingCapacity (mAh) */
   0x09, 0x66,        /*     Usage (RemainingCapacity)          */
   0x15, 0x00,        /*     Logical Minimum (0)                */
-  0x26, 0xFF, 0x00,  /*     Logical Maximum (255)              */
-  0x75, 0x08,        /*     Report Size (8)                    */
+  0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
+  0x75, 0x10,        /*     Report Size (16)                   */
   0x95, 0x01,        /*     Report Count (1)                   */
   0x81, 0x02,        /*     Input (Data,Var,Abs)               */
 
