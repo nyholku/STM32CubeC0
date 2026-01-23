@@ -29,15 +29,15 @@ import sys
 VENDOR_ID = 0x0483   # STMicroelectronics
 PRODUCT_ID = 0x5750  # HID UPS (may need adjustment based on actual PID)
 
-def find_ups_device():
+def find_ups_device(vendor_id=VENDOR_ID, product_id=PRODUCT_ID):
     """Find and open the HID UPS device"""
     print("Searching for HID UPS device...")
 
     # List all HID devices to help find the right one
-    devices = hid.enumerate(VENDOR_ID)
+    devices = hid.enumerate(vendor_id)
 
     if not devices:
-        print(f"No devices found with VID 0x{VENDOR_ID:04X}")
+        print(f"No devices found with VID 0x{vendor_id:04X}")
         print("\nAll HID devices:")
         for dev in hid.enumerate():
             print(f"  VID: 0x{dev['vendor_id']:04X} PID: 0x{dev['product_id']:04X} - {dev['product_string']}")
@@ -187,13 +187,8 @@ def main():
 
     args = parser.parse_args()
 
-    # Update VID/PID if provided
-    global VENDOR_ID, PRODUCT_ID
-    VENDOR_ID = args.vid
-    PRODUCT_ID = args.pid
-
-    # Find and open device
-    device = find_ups_device()
+    # Find and open device with specified VID/PID
+    device = find_ups_device(args.vid, args.pid)
     if not device:
         print("\nFailed to find or open HID UPS device")
         print("\nTips:")
