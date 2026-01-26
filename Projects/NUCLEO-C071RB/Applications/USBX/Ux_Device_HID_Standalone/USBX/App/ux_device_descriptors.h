@@ -289,8 +289,8 @@ uint16_t USBD_HID_ReportDesc_length(uint8_t hid_type);
 
 /* Device HID UPS */
 #define USBD_HID_UPS_EPIN_ADDR                        0x81U
-#define USBD_HID_UPS_EPIN_FS_MPS                      8U
-#define USBD_HID_UPS_EPIN_HS_MPS                      8U
+#define USBD_HID_UPS_EPIN_FS_MPS                      16U
+#define USBD_HID_UPS_EPIN_HS_MPS                      16U
 #define USBD_HID_UPS_EPIN_FS_BINTERVAL                10U
 #define USBD_HID_UPS_EPIN_HS_BINTERVAL                10U
 
