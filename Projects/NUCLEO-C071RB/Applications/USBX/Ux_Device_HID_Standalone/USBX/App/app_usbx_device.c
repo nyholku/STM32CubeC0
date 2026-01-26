@@ -129,7 +129,7 @@ UINT MX_USBX_Device_Init(VOID)
   hid_ups_parameter.ux_slave_class_hid_instance_deactivate       = USBD_HID_UPS_Deactivate;
   hid_ups_parameter.ux_device_class_hid_parameter_report_address = USBD_HID_ReportDesc(INTERFACE_HID_UPS);
   hid_ups_parameter.ux_device_class_hid_parameter_report_length  = USBD_HID_ReportDesc_length(INTERFACE_HID_UPS);
-  hid_ups_parameter.ux_device_class_hid_parameter_report_id      = UX_TRUE;
+  hid_ups_parameter.ux_device_class_hid_parameter_report_id      = UX_FALSE;
   hid_ups_parameter.ux_device_class_hid_parameter_callback       = USBD_HID_UPS_SetReport;
   hid_ups_parameter.ux_device_class_hid_parameter_get_callback   = USBD_HID_UPS_GetReport;
 

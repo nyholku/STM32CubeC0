@@ -287,10 +287,9 @@ static VOID BuildUPSReport(UX_SLAVE_CLASS_HID_EVENT *hid_event)
   uint8_t config_byte, status_byte;
   uint8_t *buf = hid_event->ux_device_class_hid_event_buffer;
 
-  /* UPS report: Set length to 16 to force USBX to send all 15 bytes
-   * When report_id = UX_TRUE, USBX strips the first byte (Report ID),
-   * so we set length = actual_bytes + 1 to compensate */
-  hid_event->ux_device_class_hid_event_length = 16;
+  /* UPS report: 15 bytes total (Report ID + 14 data bytes)
+   * With report_id = UX_FALSE, USBX sends buffer as-is without manipulation */
+  hid_event->ux_device_class_hid_event_length = 15;
 
   /* Byte 0: Report ID (must be included for GET_REPORT) */
   buf[0] = 0x01;
