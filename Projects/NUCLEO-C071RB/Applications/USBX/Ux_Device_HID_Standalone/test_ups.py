@@ -3,7 +3,7 @@
 HID UPS Battery Monitor
 Reads and displays battery status from STM32 HID UPS device
 
-Report Format (15 bytes total):
+Report Format (16 bytes total):
   Byte 0:     Report ID (0x01)
   Byte 1:     Config flags (2 bits)
               bit 0: Rechargeable
@@ -19,6 +19,7 @@ Report Format (15 bytes total):
               bit 1: Discharging
               bit 2: Charging
               bit 3: Below Capacity Limit
+  Byte 15:    Padding (0x00)
 """
 
 import hid
@@ -70,9 +71,9 @@ def find_ups_device(vendor_id=VENDOR_ID, product_id=PRODUCT_ID):
     return None
 
 def decode_report(data):
-    """Decode the 15-byte HID report"""
-    if len(data) < 15:
-        print(f"Warning: Expected 15 bytes, got {len(data)} bytes")
+    """Decode the 16-byte HID report"""
+    if len(data) < 16:
+        print(f"Warning: Expected 16 bytes, got {len(data)} bytes")
         print(f"Raw data: {' '.join(f'{b:02X}' for b in data)}")
         return None
 
@@ -211,7 +212,7 @@ def main():
                 try:
                     # Read report (GET_REPORT request)
                     # For HID devices, we can use get_feature_report with report ID
-                    data = device.get_feature_report(0x01, 15)
+                    data = device.get_feature_report(0x01, 16)
 
                     if args.raw:
                         print(f"\nRaw data ({len(data)} bytes): {' '.join(f'{b:02X}' for b in data)}")

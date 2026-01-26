@@ -234,6 +234,11 @@ __ALIGN_END =
   0x95, 0x01,        /*     Report Count (1)                   */
   0x81, 0x01,        /*     Input (Const,Array,Abs) - padding  */
 
+  /* Extra padding byte to force 15-byte report */
+  0x75, 0x08,        /*     Report Size (8)                    */
+  0x95, 0x01,        /*     Report Count (1)                   */
+  0x81, 0x01,        /*     Input (Const,Array,Abs) - padding  */
+
   0xC0,              /*   End Collection (Physical)            */
   /* USER CODE END USBD_HID_UPS_ReportDesc                     */
   0xC0               /* End Collection (Application)           */

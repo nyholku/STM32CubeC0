@@ -287,11 +287,12 @@ static VOID BuildUPSReport(UX_SLAVE_CLASS_HID_EVENT *hid_event)
   uint8_t config_byte, status_byte;
   uint8_t *buf = hid_event->ux_device_class_hid_event_buffer;
 
-  /* UPS report: 15 bytes total (Report ID + 14 data bytes)
-   * With report_id = UX_FALSE, USBX sends buffer as-is without manipulation */
-  hid_event->ux_device_class_hid_event_length = 15;
+  /* UPS report: 16 bytes total (Report ID + 15 data bytes including padding)
+   * Descriptor defines 15 bytes of data to force USBX to send all fields
+   * With report_id = UX_FALSE, USBX sends buffer as-is */
+  hid_event->ux_device_class_hid_event_length = 16;
 
-  /* Byte 0: Report ID (must be included for GET_REPORT) */
+  /* Byte 0: Report ID */
   buf[0] = 0x01;
 
   /* Byte 1: Static configuration flags (Rechargeable, CapacityMode) */
@@ -337,6 +338,9 @@ static VOID BuildUPSReport(UX_SLAVE_CLASS_HID_EVENT *hid_event)
   if (ups_battery_state.below_capacity_limit)
     status_byte |= (1 << 3);
   buf[14] = status_byte;
+
+  /* Byte 15: Padding byte (required by descriptor) */
+  buf[15] = 0x00;
 }
 
 /* USER CODE END 1 */
