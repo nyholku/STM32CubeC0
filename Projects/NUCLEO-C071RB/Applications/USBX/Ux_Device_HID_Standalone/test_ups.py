@@ -71,11 +71,14 @@ def find_ups_device(vendor_id=VENDOR_ID, product_id=PRODUCT_ID):
     return None
 
 def decode_report(data):
-    """Decode the 16-byte HID report"""
-    if len(data) < 16:
-        print(f"Warning: Expected 16 bytes, got {len(data)} bytes")
+    """Decode the HID report (14 or 16 bytes)"""
+    if len(data) < 14:
+        print(f"Error: Expected at least 14 bytes, got {len(data)} bytes")
         print(f"Raw data: {' '.join(f'{b:02X}' for b in data)}")
         return None
+
+    if len(data) == 14:
+        print(f"Note: Received 14 bytes (missing PresentStatus byte)")
 
     # Byte 0: Report ID
     report_id = data[0]
@@ -103,12 +106,19 @@ def decode_report(data):
     # Bytes 12-13: Runtime to Empty (16-bit LE, minutes) - DYNAMIC
     runtime_to_empty = struct.unpack('<H', bytes(data[12:14]))[0]
 
-    # Byte 14: PresentStatus flags
-    present_status = data[14]
-    ac_present = bool(present_status & (1 << 0))
-    discharging = bool(present_status & (1 << 1))
-    charging = bool(present_status & (1 << 2))
-    below_capacity_limit = bool(present_status & (1 << 3))
+    # Byte 14: PresentStatus flags (if available)
+    if len(data) >= 15:
+        present_status = data[14]
+        ac_present = bool(present_status & (1 << 0))
+        discharging = bool(present_status & (1 << 1))
+        charging = bool(present_status & (1 << 2))
+        below_capacity_limit = bool(present_status & (1 << 3))
+    else:
+        # Status byte missing - use default values
+        ac_present = False
+        discharging = False
+        charging = False
+        below_capacity_limit = False
 
     # Calculate battery percentage
     if full_charge_capacity > 0:

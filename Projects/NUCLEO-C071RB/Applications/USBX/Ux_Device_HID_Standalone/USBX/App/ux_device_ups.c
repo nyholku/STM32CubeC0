@@ -49,20 +49,20 @@ __IO uint8_t User_Button_State = 0U;
 /* Periodic report period - send report every ~2 seconds */
 #define REPORT_PERIOD_MS 2000  /* Send INPUT report every 2 seconds */
 
-/* Default battery state - initialized to simulate a UPS on AC power with full battery */
+/* Default battery state - INVERTED: Start with low battery (5%) to test macOS reading */
 static UPS_BatteryStateTypeDef ups_battery_state = {
-  .ac_present = 1,              /* AC power is present */
-  .charging = 0,                /* Not charging (battery full) */
-  .discharging = 0,             /* Not discharging (on AC) */
-  .below_capacity_limit = 0,    /* Above capacity limit */
+  .ac_present = 0,              /* AC power NOT present - running on battery */
+  .charging = 0,                /* Not charging */
+  .discharging = 1,             /* Discharging - on battery */
+  .below_capacity_limit = 1,    /* Below capacity limit - critical low */
   .capacity_mode = 1,           /* Capacity mode enabled */
   .rechargeable = 1,            /* Battery is rechargeable */
-  .remaining_capacity = 7200,   /* 7200 mAh (100% of capacity) */
+  .remaining_capacity = 360,    /* 360 mAh (5% of 7200 mAh) */
   .full_charge_capacity = 7200, /* 7200 mAh (typical UPS battery) */
   .design_capacity = 7200,      /* 7200 mAh design capacity */
   .voltage = 12000,             /* 12000 mV (12V nominal) */
   .config_voltage = 12000,      /* 12000 mV (12V nominal) */
-  .runtime_to_empty = 3600      /* 3600 minutes (60 hours) runtime */
+  .runtime_to_empty = 10        /* 10 minutes runtime left */
 };
 
 /* USER CODE END PV */
@@ -184,10 +184,10 @@ VOID USBX_DEVICE_HID_UPS_Task(VOID)
     /* Check if user button is pressed to simulate battery state change */
     if (User_Button_State)
     {
-      /* Simulate battery state change - toggle between AC present and low battery */
+      /* INVERTED LOGIC: Toggle between low battery (5%) and AC present (100%) */
       if (ups_battery_state.ac_present)
       {
-        /* Simulate critical battery - switch to battery at 5% (360 mAh of 7200 mAh) */
+        /* Simulate power failure - switch back to battery at 5% (360 mAh of 7200 mAh) */
         ups_battery_state.ac_present = 0;
         ups_battery_state.discharging = 1;
         ups_battery_state.charging = 0;
