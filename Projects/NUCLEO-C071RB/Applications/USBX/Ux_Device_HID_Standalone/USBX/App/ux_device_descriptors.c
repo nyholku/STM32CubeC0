@@ -161,7 +161,6 @@ __ALIGN_END =
   0xA1, 0x01,        /* Collection (Application)               */
   0x09, 0x24,        /*   Usage (Sink)                         */
   0xA1, 0x00,        /*   Collection (Physical)                */
-  0x85, 0x01,        /*     Report ID (1)                      */
   0x05, 0x85,        /*     Usage Page (Battery System)        */
 
   /* Static battery configuration flags */
@@ -230,12 +229,7 @@ __ALIGN_END =
   0x75, 0x01,        /*     Report Size (1)                    */
   0x95, 0x04,        /*     Report Count (4)                   */
   0x81, 0x82,        /*     Input (Data,Var,Abs,Vol)           */
-  0x75, 0x04,        /*     Report Size (4)                    */
-  0x95, 0x01,        /*     Report Count (1)                   */
-  0x81, 0x01,        /*     Input (Const,Array,Abs) - padding  */
-
-  /* Extra padding byte to force 15-byte report */
-  0x75, 0x08,        /*     Report Size (8)                    */
+  0x75, 0x0C,        /*     Report Size (12) - larger padding  */
   0x95, 0x01,        /*     Report Count (1)                   */
   0x81, 0x01,        /*     Input (Const,Array,Abs) - padding  */
 
