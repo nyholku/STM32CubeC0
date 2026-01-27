@@ -71,44 +71,41 @@ def find_ups_device(vendor_id=VENDOR_ID, product_id=PRODUCT_ID):
     return None
 
 def decode_report(data):
-    """Decode the HID report (14 or 16 bytes)"""
-    if len(data) < 14:
-        print(f"Error: Expected at least 14 bytes, got {len(data)} bytes")
+    """Decode the HID report (15 bytes, NO Report ID)"""
+    if len(data) < 13:
+        print(f"Error: Expected at least 13 bytes, got {len(data)} bytes")
         print(f"Raw data: {' '.join(f'{b:02X}' for b in data)}")
         return None
 
-    if len(data) == 14:
-        print(f"Note: Received 14 bytes (missing PresentStatus byte)")
+    if len(data) < 15:
+        print(f"Note: Received {len(data)} bytes (missing PresentStatus byte)")
 
-    # Byte 0: Report ID
-    report_id = data[0]
-
-    # Byte 1: Config flags
-    config = data[1]
+    # Byte 0: Config flags
+    config = data[0]
     rechargeable = bool(config & (1 << 0))
     capacity_mode = bool(config & (1 << 1))
 
-    # Bytes 2-3: Design Capacity (16-bit LE, mAh)
-    design_capacity = struct.unpack('<H', bytes(data[2:4]))[0]
+    # Bytes 1-2: Design Capacity (16-bit LE, mAh)
+    design_capacity = struct.unpack('<H', bytes(data[1:3]))[0]
 
-    # Bytes 4-5: Full Charge Capacity (16-bit LE, mAh)
-    full_charge_capacity = struct.unpack('<H', bytes(data[4:6]))[0]
+    # Bytes 3-4: Full Charge Capacity (16-bit LE, mAh)
+    full_charge_capacity = struct.unpack('<H', bytes(data[3:5]))[0]
 
-    # Bytes 6-7: Voltage (16-bit LE, mV)
-    voltage = struct.unpack('<H', bytes(data[6:8]))[0]
+    # Bytes 5-6: Voltage (16-bit LE, mV)
+    voltage = struct.unpack('<H', bytes(data[5:7]))[0]
 
-    # Bytes 8-9: Config Voltage (16-bit LE, mV)
-    config_voltage = struct.unpack('<H', bytes(data[8:10]))[0]
+    # Bytes 7-8: Config Voltage (16-bit LE, mV)
+    config_voltage = struct.unpack('<H', bytes(data[7:9]))[0]
 
-    # Bytes 10-11: Remaining Capacity (16-bit LE, mAh) - DYNAMIC
-    remaining_capacity = struct.unpack('<H', bytes(data[10:12]))[0]
+    # Bytes 9-10: Remaining Capacity (16-bit LE, mAh) - DYNAMIC
+    remaining_capacity = struct.unpack('<H', bytes(data[9:11]))[0]
 
-    # Bytes 12-13: Runtime to Empty (16-bit LE, minutes) - DYNAMIC
-    runtime_to_empty = struct.unpack('<H', bytes(data[12:14]))[0]
+    # Bytes 11-12: Runtime to Empty (16-bit LE, minutes) - DYNAMIC
+    runtime_to_empty = struct.unpack('<H', bytes(data[11:13]))[0]
 
-    # Byte 14: PresentStatus flags (if available)
-    if len(data) >= 15:
-        present_status = data[14]
+    # Byte 13: PresentStatus flags (if available)
+    if len(data) >= 14:
+        present_status = data[13]
         ac_present = bool(present_status & (1 << 0))
         discharging = bool(present_status & (1 << 1))
         charging = bool(present_status & (1 << 2))
@@ -127,7 +124,6 @@ def decode_report(data):
         battery_percent = 0
 
     return {
-        'report_id': report_id,
         'ac_present': ac_present,
         'charging': charging,
         'discharging': discharging,
@@ -221,8 +217,8 @@ def main():
             while True:
                 try:
                     # Read report (GET_REPORT request)
-                    # For HID devices, we can use get_feature_report with report ID
-                    data = device.get_feature_report(0x01, 16)
+                    # No Report ID in descriptor, so use 0x00 and request 15 bytes
+                    data = device.get_feature_report(0x00, 15)
 
                     if args.raw:
                         print(f"\nRaw data ({len(data)} bytes): {' '.join(f'{b:02X}' for b in data)}")
@@ -240,7 +236,8 @@ def main():
                     break
         else:
             # Single read
-            data = device.get_feature_report(0x01, 14)
+            # No Report ID in descriptor, so use 0x00 and request 15 bytes
+            data = device.get_feature_report(0x00, 15)
 
             if args.raw:
                 print(f"\nRaw data ({len(data)} bytes): {' '.join(f'{b:02X}' for b in data)}")
