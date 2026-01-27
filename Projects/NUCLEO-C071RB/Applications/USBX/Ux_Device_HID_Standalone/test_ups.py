@@ -72,13 +72,19 @@ def find_ups_device(vendor_id=VENDOR_ID, product_id=PRODUCT_ID):
 
 def decode_report(data):
     """Decode the HID report (15 bytes, NO Report ID)"""
-    if len(data) < 13:
-        print(f"Error: Expected at least 13 bytes, got {len(data)} bytes")
+    if len(data) < 14:
+        print(f"Error: Expected at least 14 bytes, got {len(data)} bytes")
         print(f"Raw data: {' '.join(f'{b:02X}' for b in data)}")
         return None
 
-    if len(data) < 15:
-        print(f"Note: Received {len(data)} bytes (missing PresentStatus byte)")
+    # hidapi prepends a 0x00 byte when there's no Report ID in descriptor
+    # Skip the first byte (Report ID = 0x00)
+    if len(data) >= 15 and data[0] == 0x00:
+        data = data[1:]  # Skip the prepended 0x00
+        print("Note: Skipped prepended Report ID byte (0x00)")
+
+    if len(data) < 14:
+        print(f"Note: Received {len(data)} bytes (missing PresentStatus or padding byte)")
 
     # Byte 0: Config flags
     config = data[0]
