@@ -1,25 +1,27 @@
 #!/usr/bin/env python3
 """
-HID UPS Battery Monitor
-Reads and displays battery status from STM32 HID UPS device
+HID UPS Battery Monitor - STM32
 
-Report Format (16 bytes total):
-  Byte 0:     Report ID (0x01)
-  Byte 1:     Config flags (2 bits)
+Static data read via FEATURE report (GET_REPORT), dynamic data via INPUT
+report (interrupt endpoint).  Each Usage appears in exactly one report type.
+
+FEATURE report (9 bytes) - polled by host via GET_REPORT:
+  Byte 0:     Config flags (2 bits + 6 bits padding)
               bit 0: Rechargeable
               bit 1: Capacity Mode
-  Bytes 2-3:  Design Capacity (16-bit little-endian, mAh)
-  Bytes 4-5:  Full Charge Capacity (16-bit little-endian, mAh)
-  Bytes 6-7:  Voltage (16-bit little-endian, mV)
-  Bytes 8-9:  Config Voltage (16-bit little-endian, mV)
-  Bytes 10-11: Remaining Capacity (16-bit little-endian, mAh) [DYNAMIC]
-  Bytes 12-13: Runtime to Empty (16-bit little-endian, minutes) [DYNAMIC]
-  Byte 14:    PresentStatus flags (4 bits)
+  Bytes 1-2:  Design Capacity (16-bit LE, mAh)
+  Bytes 3-4:  Full Charge Capacity (16-bit LE, mAh)
+  Bytes 5-6:  Voltage (16-bit LE, mV)
+  Bytes 7-8:  Config Voltage (16-bit LE, mV)
+
+INPUT report (5 bytes) - pushed by device every 2 s:
+  Bytes 0-1:  Remaining Capacity (16-bit LE, mAh)
+  Bytes 2-3:  Runtime to Empty (16-bit LE, minutes)
+  Byte 4:     PresentStatus flags (4 bits + 4 bits padding)
               bit 0: AC Present
               bit 1: Discharging
               bit 2: Charging
               bit 3: Below Capacity Limit
-  Byte 15:    Padding (0x00)
 """
 
 import hid
@@ -27,240 +29,211 @@ import struct
 import time
 import sys
 
-# HID Vendor and Product IDs for STM32 HID UPS
-VENDOR_ID = 0x0483   # STMicroelectronics
-PRODUCT_ID = 0x5750  # HID UPS (may need adjustment based on actual PID)
+VENDOR_ID  = 0x0483   # STMicroelectronics
+PRODUCT_ID = 0x5750
+
 
 def find_ups_device(vendor_id=VENDOR_ID, product_id=PRODUCT_ID):
-    """Find and open the HID UPS device"""
+    """Find and open the HID UPS device."""
     print("Searching for HID UPS device...")
-
-    # List all HID devices to help find the right one
     devices = hid.enumerate(vendor_id)
 
     if not devices:
         print(f"No devices found with VID 0x{vendor_id:04X}")
         print("\nAll HID devices:")
         for dev in hid.enumerate():
-            print(f"  VID: 0x{dev['vendor_id']:04X} PID: 0x{dev['product_id']:04X} - {dev['product_string']}")
+            print(f"  VID: 0x{dev['vendor_id']:04X} PID: 0x{dev['product_id']:04X} "
+                  f"- {dev['product_string']}")
         return None
 
-    # Try to find UPS device by product string
     ups_device = None
     for dev in devices:
         if 'UPS' in str(dev.get('product_string', '')).upper():
             ups_device = dev
             break
-
-    if not ups_device and devices:
-        # If no UPS found by name, use first STM32 device
+    if not ups_device:
         ups_device = devices[0]
 
-    if ups_device:
-        print(f"Found: {ups_device['product_string']} (VID: 0x{ups_device['vendor_id']:04X}, PID: 0x{ups_device['product_id']:04X})")
-
-        try:
-            h = hid.device()
-            h.open(ups_device['vendor_id'], ups_device['product_id'])
-            h.set_nonblocking(False)
-            return h
-        except Exception as e:
-            print(f"Error opening device: {e}")
-            return None
-
-    return None
-
-def decode_report(data):
-    """Decode the HID report (15 bytes, NO Report ID)"""
-    if len(data) < 14:
-        print(f"Error: Expected at least 14 bytes, got {len(data)} bytes")
-        print(f"Raw data: {' '.join(f'{b:02X}' for b in data)}")
+    print(f"Found: {ups_device['product_string']} "
+          f"(VID: 0x{ups_device['vendor_id']:04X}, PID: 0x{ups_device['product_id']:04X})")
+    try:
+        h = hid.device()
+        h.open(ups_device['vendor_id'], ups_device['product_id'])
+        return h
+    except Exception as e:
+        print(f"Error opening device: {e}")
         return None
 
-    # hidapi prepends a 0x00 byte when there's no Report ID in descriptor
-    # Skip the first byte (Report ID = 0x00)
-    if len(data) >= 15 and data[0] == 0x00:
-        data = data[1:]  # Skip the prepended 0x00
-        print("Note: Skipped prepended Report ID byte (0x00)")
 
-    if len(data) < 14:
-        print(f"Note: Received {len(data)} bytes (missing PresentStatus or padding byte)")
+def read_feature(device, show_raw=False):
+    """Read and decode the 9-byte FEATURE report (static data).
+    hidapi prepends a 0x00 byte when descriptor has no Report ID."""
+    data = device.get_feature_report(0x00, 10)  # 10 = 1 prepended + 9 data
 
-    # Byte 0: Config flags
+    if show_raw:
+        print(f"  Raw FEATURE ({len(data)} bytes): {' '.join(f'{b:02X}' for b in data)}")
+
+    if data and data[0] == 0x00:
+        data = data[1:]
+
+    if len(data) < 9:
+        print(f"  Warning: FEATURE report too short ({len(data)} bytes)")
+        return None
+
     config = data[0]
-    rechargeable = bool(config & (1 << 0))
-    capacity_mode = bool(config & (1 << 1))
-
-    # Bytes 1-2: Design Capacity (16-bit LE, mAh)
-    design_capacity = struct.unpack('<H', bytes(data[1:3]))[0]
-
-    # Bytes 3-4: Full Charge Capacity (16-bit LE, mAh)
-    full_charge_capacity = struct.unpack('<H', bytes(data[3:5]))[0]
-
-    # Bytes 5-6: Voltage (16-bit LE, mV)
-    voltage = struct.unpack('<H', bytes(data[5:7]))[0]
-
-    # Bytes 7-8: Config Voltage (16-bit LE, mV)
-    config_voltage = struct.unpack('<H', bytes(data[7:9]))[0]
-
-    # Bytes 9-10: Remaining Capacity (16-bit LE, mAh) - DYNAMIC
-    remaining_capacity = struct.unpack('<H', bytes(data[9:11]))[0]
-
-    # Bytes 11-12: Runtime to Empty (16-bit LE, minutes) - DYNAMIC
-    runtime_to_empty = struct.unpack('<H', bytes(data[11:13]))[0]
-
-    # Byte 13: PresentStatus flags (if available)
-    if len(data) >= 14:
-        present_status = data[13]
-        ac_present = bool(present_status & (1 << 0))
-        discharging = bool(present_status & (1 << 1))
-        charging = bool(present_status & (1 << 2))
-        below_capacity_limit = bool(present_status & (1 << 3))
-    else:
-        # Status byte missing - use default values
-        ac_present = False
-        discharging = False
-        charging = False
-        below_capacity_limit = False
-
-    # Calculate battery percentage
-    if full_charge_capacity > 0:
-        battery_percent = (remaining_capacity * 100) / full_charge_capacity
-    else:
-        battery_percent = 0
-
     return {
-        'ac_present': ac_present,
-        'charging': charging,
-        'discharging': discharging,
-        'below_capacity_limit': below_capacity_limit,
-        'capacity_mode': capacity_mode,
-        'rechargeable': rechargeable,
-        'remaining_capacity': remaining_capacity,
-        'full_charge_capacity': full_charge_capacity,
-        'design_capacity': design_capacity,
-        'voltage': voltage,
-        'config_voltage': config_voltage,
-        'runtime_to_empty': runtime_to_empty,
-        'battery_percent': battery_percent
+        'rechargeable':         bool(config & 0x01),
+        'capacity_mode':        bool(config & 0x02),
+        'design_capacity':      struct.unpack_from('<H', bytes(data), 1)[0],
+        'full_charge_capacity': struct.unpack_from('<H', bytes(data), 3)[0],
+        'voltage':              struct.unpack_from('<H', bytes(data), 5)[0],
+        'config_voltage':       struct.unpack_from('<H', bytes(data), 7)[0],
     }
 
-def print_status(status):
-    """Print battery status in human-readable format"""
-    print("\n" + "="*60)
-    print("UPS BATTERY STATUS")
-    print("="*60)
 
-    # Power status
-    power_status = "AC Power" if status['ac_present'] else "Battery Power"
-    print(f"Power Source:      {power_status}")
+def decode_input(data):
+    """Decode a 5-byte INPUT report (dynamic data).  Returns None if too short."""
+    if len(data) < 5:
+        return None
+    flags = data[4]
+    return {
+        'remaining_capacity':   struct.unpack_from('<H', bytes(data), 0)[0],
+        'runtime_to_empty':     struct.unpack_from('<H', bytes(data), 2)[0],
+        'ac_present':           bool(flags & 0x01),
+        'discharging':          bool(flags & 0x02),
+        'charging':             bool(flags & 0x04),
+        'below_capacity_limit': bool(flags & 0x08),
+    }
 
-    if status['charging']:
-        print(f"Charging:          Yes")
-    elif status['discharging']:
-        print(f"Discharging:       Yes")
 
-    # Battery level
-    print(f"\nBattery Level:     {status['battery_percent']:.1f}%")
-    print(f"Remaining:         {status['remaining_capacity']} mAh")
-    print(f"Full Capacity:     {status['full_charge_capacity']} mAh")
-    print(f"Design Capacity:   {status['design_capacity']} mAh")
+def read_input(device, show_raw=False):
+    """Blocking read of the next INPUT report from the interrupt endpoint."""
+    device.set_nonblocking(False)
+    data = device.read(6)   # allow 6 in case of extra byte
 
-    # Voltage
-    print(f"\nVoltage:           {status['voltage']/1000:.2f} V")
-    print(f"Config Voltage:    {status['config_voltage']/1000:.2f} V")
+    if show_raw:
+        print(f"  Raw INPUT ({len(data)} bytes): {' '.join(f'{b:02X}' for b in data)}")
 
-    # Runtime
-    hours = status['runtime_to_empty'] // 60
-    minutes = status['runtime_to_empty'] % 60
-    print(f"Runtime to Empty:  {hours}h {minutes}m")
+    if not data:
+        return None
+    # read() normally does NOT prepend, but handle it defensively
+    if len(data) >= 6 and data[0] == 0x00:
+        data = data[1:]
+    return decode_input(data)
 
-    # Flags
-    print(f"\nRechargeable:      {'Yes' if status['rechargeable'] else 'No'}")
-    print(f"Capacity Mode:     {'Enabled' if status['capacity_mode'] else 'Disabled'}")
 
-    # Warning
-    if status['below_capacity_limit']:
-        print(f"\n⚠️  WARNING: Battery below capacity limit!")
+def print_status(static, dynamic):
+    """Print combined battery status."""
+    print("\n" + "=" * 55)
+    print(" UPS BATTERY STATUS")
+    print("=" * 55)
 
-    print("="*60)
+    if dynamic:
+        print(f"  Power Source:      {'AC Power' if dynamic['ac_present'] else 'Battery Power'}")
+        if dynamic['charging']:
+            print(f"  Charging:          Yes")
+        elif dynamic['discharging']:
+            print(f"  Discharging:       Yes")
 
-    # Raw data
-    print(f"\nReport ID: 0x{status['report_id']:02X}")
+        if static and static['full_charge_capacity'] > 0:
+            pct = dynamic['remaining_capacity'] * 100.0 / static['full_charge_capacity']
+            print(f"  Battery Level:     {pct:.1f}%")
+        print(f"  Remaining:         {dynamic['remaining_capacity']} mAh")
+
+        h, m = divmod(dynamic['runtime_to_empty'], 60)
+        print(f"  Runtime to Empty:  {h}h {m}m")
+
+        if dynamic['below_capacity_limit']:
+            print(f"  *** WARNING: Battery below capacity limit ***")
+    else:
+        print(f"  [Dynamic data not available]")
+
+    if static:
+        print(f"  Full Capacity:     {static['full_charge_capacity']} mAh")
+        print(f"  Design Capacity:   {static['design_capacity']} mAh")
+        print(f"  Voltage:           {static['voltage']/1000:.2f} V")
+        print(f"  Config Voltage:    {static['config_voltage']/1000:.2f} V")
+        print(f"  Rechargeable:      {'Yes' if static['rechargeable'] else 'No'}")
+        print(f"  Capacity Mode:     {'Enabled' if static['capacity_mode'] else 'Disabled'}")
+
+    print("=" * 55)
+
 
 def main():
-    """Main function"""
     import argparse
 
     parser = argparse.ArgumentParser(description='Monitor STM32 HID UPS battery status')
     parser.add_argument('-c', '--continuous', action='store_true',
-                       help='Continuously poll battery status')
-    parser.add_argument('-i', '--interval', type=float, default=2.0,
-                       help='Polling interval in seconds (default: 2.0)')
+                       help='Continuously monitor (blocks on INPUT reports)')
     parser.add_argument('-r', '--raw', action='store_true',
-                       help='Show raw byte data')
+                       help='Show raw report bytes')
     parser.add_argument('-v', '--vid', type=lambda x: int(x, 0), default=VENDOR_ID,
                        help=f'USB Vendor ID (default: 0x{VENDOR_ID:04X})')
     parser.add_argument('-p', '--pid', type=lambda x: int(x, 0), default=PRODUCT_ID,
                        help=f'USB Product ID (default: 0x{PRODUCT_ID:04X})')
-
     args = parser.parse_args()
 
-    # Find and open device with specified VID/PID
     device = find_ups_device(args.vid, args.pid)
     if not device:
         print("\nFailed to find or open HID UPS device")
-        print("\nTips:")
+        print("Tips:")
         print("  1. Make sure the device is plugged in")
         print("  2. Try running with sudo/administrator privileges")
-        print("  3. Use --vid and --pid to specify correct IDs")
-        print("  4. Install hidapi: pip install hidapi")
+        print("  3. Install hidapi: pip install hidapi")
         return 1
 
     try:
+        # --- FEATURE report: static data (read once) ---
+        print("Reading FEATURE report (static data)...")
+        static = read_feature(device, show_raw=args.raw)
+        if static:
+            print(f"  DesignCap={static['design_capacity']} "
+                  f"FullCap={static['full_charge_capacity']} "
+                  f"V={static['voltage']}mV")
+        else:
+            print("  Failed to read FEATURE report")
+
+        # --- INPUT report: dynamic data ---
         if args.continuous:
-            print(f"\nPolling every {args.interval} seconds (Press Ctrl+C to stop)...")
+            print("\nListening for INPUT reports... (Ctrl+C to stop)\n")
             while True:
                 try:
-                    # Read report (GET_REPORT request)
-                    # No Report ID in descriptor, so use 0x00 and request 15 bytes
-                    data = device.get_feature_report(0x00, 15)
-
-                    if args.raw:
-                        print(f"\nRaw data ({len(data)} bytes): {' '.join(f'{b:02X}' for b in data)}")
-
-                    status = decode_report(data)
-                    if status:
-                        print_status(status)
-                    else:
-                        print("Error: Invalid report data")
-
-                    time.sleep(args.interval)
-
+                    dynamic = read_input(device, show_raw=args.raw)
+                    if dynamic:
+                        print_status(static, dynamic)
                 except KeyboardInterrupt:
-                    print("\n\nStopped by user")
+                    print("\nStopped.")
                     break
         else:
-            # Single read
-            # No Report ID in descriptor, so use 0x00 and request 15 bytes
-            data = device.get_feature_report(0x00, 15)
+            # Single-shot: poll for one INPUT report with 5 s timeout
+            print("Waiting for INPUT report (timeout 5 s)...")
+            device.set_nonblocking(True)
+            dynamic = None
+            deadline = time.time() + 5.0
+            while time.time() < deadline:
+                data = device.read(6)
+                if data:
+                    if args.raw:
+                        print(f"  Raw INPUT ({len(data)} bytes): "
+                              f"{' '.join(f'{b:02X}' for b in data)}")
+                    if len(data) >= 6 and data[0] == 0x00:
+                        data = data[1:]
+                    dynamic = decode_input(data)
+                    break
+                time.sleep(0.1)
 
-            if args.raw:
-                print(f"\nRaw data ({len(data)} bytes): {' '.join(f'{b:02X}' for b in data)}")
-
-            status = decode_report(data)
-            if status:
-                print_status(status)
-            else:
-                print("Error: Invalid report data")
+            if not dynamic:
+                print("  No INPUT report received within timeout")
+            print_status(static, dynamic)
 
     except Exception as e:
-        print(f"\nError reading from device: {e}")
+        print(f"\nError: {e}")
         return 1
     finally:
         device.close()
 
     return 0
+
 
 if __name__ == '__main__':
     sys.exit(main())

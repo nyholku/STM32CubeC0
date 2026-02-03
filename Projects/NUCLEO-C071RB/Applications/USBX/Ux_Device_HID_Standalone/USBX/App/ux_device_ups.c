@@ -149,10 +149,37 @@ UINT USBD_HID_UPS_GetReport(UX_SLAVE_CLASS_HID *hid_instance,
   UINT status = UX_SUCCESS;
 
   /* USER CODE BEGIN USBD_HID_UPS_GetReport */
+  uint8_t *buf = hid_event->ux_device_class_hid_event_buffer;
+  uint8_t config_byte = 0;
+
   UX_PARAMETER_NOT_USED(hid_instance);
 
-  /* Build and return the current UPS report */
-  BuildUPSReport(hid_event);
+  /* Build 9-byte FEATURE report: static battery data
+   * Byte 0:    Config flags (Rechargeable, CapacityMode) + 6-bit padding
+   * Bytes 1-2: DesignCapacity (16-bit LE, mAh)
+   * Bytes 3-4: FullChargeCapacity (16-bit LE, mAh)
+   * Bytes 5-6: Voltage (16-bit LE, mV)
+   * Bytes 7-8: ConfigVoltage (16-bit LE, mV)
+   */
+  hid_event->ux_device_class_hid_event_length = 9;
+
+  if (ups_battery_state.rechargeable)
+    config_byte |= (1 << 0);
+  if (ups_battery_state.capacity_mode)
+    config_byte |= (1 << 1);
+  buf[0] = config_byte;
+
+  buf[1] = (uint8_t)(ups_battery_state.design_capacity & 0xFF);
+  buf[2] = (uint8_t)((ups_battery_state.design_capacity >> 8) & 0xFF);
+
+  buf[3] = (uint8_t)(ups_battery_state.full_charge_capacity & 0xFF);
+  buf[4] = (uint8_t)((ups_battery_state.full_charge_capacity >> 8) & 0xFF);
+
+  buf[5] = (uint8_t)(ups_battery_state.voltage & 0xFF);
+  buf[6] = (uint8_t)((ups_battery_state.voltage >> 8) & 0xFF);
+
+  buf[7] = (uint8_t)(ups_battery_state.config_voltage & 0xFF);
+  buf[8] = (uint8_t)((ups_battery_state.config_voltage >> 8) & 0xFF);
 
   /* USER CODE END USBD_HID_UPS_GetReport */
 
@@ -284,48 +311,26 @@ VOID USBX_DEVICE_HID_UPS_UpdateBatteryState(UPS_BatteryStateTypeDef *battery_sta
   */
 static VOID BuildUPSReport(UX_SLAVE_CLASS_HID_EVENT *hid_event)
 {
-  uint8_t config_byte, status_byte;
+  uint8_t status_byte = 0;
   uint8_t *buf = hid_event->ux_device_class_hid_event_buffer;
 
-  /* UPS report: 15 bytes (NO Report ID in descriptor or data)
-   * Report ID was removed from descriptor, so data starts immediately
-   * With report_id = UX_FALSE, USBX sends buffer as-is */
-  hid_event->ux_device_class_hid_event_length = 15;
+  /* Build 5-byte INPUT report: dynamic battery data (sent on interrupt endpoint)
+   * Bytes 0-1: RemainingCapacity (16-bit LE, mAh)
+   * Bytes 2-3: RunTimeToEmpty (16-bit LE, minutes)
+   * Byte 4:    Status flags (4 bits) + padding (4 bits)
+   *            bit 0: ACPresent
+   *            bit 1: Discharging
+   *            bit 2: Charging
+   *            bit 3: BelowCapacityLimit
+   */
+  hid_event->ux_device_class_hid_event_length = 5;
 
-  /* Byte 0: Static configuration flags (Rechargeable, CapacityMode) */
-  config_byte = 0;
-  if (ups_battery_state.rechargeable)
-    config_byte |= (1 << 0);
-  if (ups_battery_state.capacity_mode)
-    config_byte |= (1 << 1);
-  buf[0] = config_byte;
+  buf[0] = (uint8_t)(ups_battery_state.remaining_capacity & 0xFF);
+  buf[1] = (uint8_t)((ups_battery_state.remaining_capacity >> 8) & 0xFF);
 
-  /* Bytes 1-2: Design capacity (16-bit little-endian, mAh) */
-  buf[1] = (uint8_t)(ups_battery_state.design_capacity & 0xFF);
-  buf[2] = (uint8_t)((ups_battery_state.design_capacity >> 8) & 0xFF);
+  buf[2] = (uint8_t)(ups_battery_state.runtime_to_empty & 0xFF);
+  buf[3] = (uint8_t)((ups_battery_state.runtime_to_empty >> 8) & 0xFF);
 
-  /* Bytes 3-4: Full charge capacity (16-bit little-endian, mAh) */
-  buf[3] = (uint8_t)(ups_battery_state.full_charge_capacity & 0xFF);
-  buf[4] = (uint8_t)((ups_battery_state.full_charge_capacity >> 8) & 0xFF);
-
-  /* Bytes 5-6: Voltage (16-bit little-endian, mV) */
-  buf[5] = (uint8_t)(ups_battery_state.voltage & 0xFF);
-  buf[6] = (uint8_t)((ups_battery_state.voltage >> 8) & 0xFF);
-
-  /* Bytes 7-8: Config voltage (16-bit little-endian, mV) */
-  buf[7] = (uint8_t)(ups_battery_state.config_voltage & 0xFF);
-  buf[8] = (uint8_t)((ups_battery_state.config_voltage >> 8) & 0xFF);
-
-  /* Bytes 9-10: Remaining capacity (16-bit little-endian, mAh) - DYNAMIC/VOLATILE */
-  buf[9] = (uint8_t)(ups_battery_state.remaining_capacity & 0xFF);
-  buf[10] = (uint8_t)((ups_battery_state.remaining_capacity >> 8) & 0xFF);
-
-  /* Bytes 11-12: Runtime to empty (16-bit little-endian, minutes) - DYNAMIC/VOLATILE */
-  buf[11] = (uint8_t)(ups_battery_state.runtime_to_empty & 0xFF);
-  buf[12] = (uint8_t)((ups_battery_state.runtime_to_empty >> 8) & 0xFF);
-
-  /* Byte 13: PresentStatus flags (ACPresent, Discharging, Charging, BelowCapacityLimit) */
-  status_byte = 0;
   if (ups_battery_state.ac_present)
     status_byte |= (1 << 0);
   if (ups_battery_state.discharging)
@@ -334,10 +339,7 @@ static VOID BuildUPSReport(UX_SLAVE_CLASS_HID_EVENT *hid_event)
     status_byte |= (1 << 2);
   if (ups_battery_state.below_capacity_limit)
     status_byte |= (1 << 3);
-  buf[13] = status_byte;
-
-  /* Byte 14: Padding byte (required by descriptor) */
-  buf[14] = 0x00;
+  buf[4] = status_byte;
 }
 
 /* USER CODE END 1 */

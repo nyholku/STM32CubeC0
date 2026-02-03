@@ -163,19 +163,19 @@ __ALIGN_END =
   0xA1, 0x00,        /*   Collection (Physical)                */
   0x05, 0x85,        /*     Usage Page (Battery System)        */
 
-  /* Static battery configuration flags */
+  /* FEATURE: Static config flags (1 byte) - read via GET_REPORT */
   0x09, 0x8B,        /*     Usage (Rechargeable)               */
   0x09, 0x2C,        /*     Usage (Capacity Mode)              */
   0x15, 0x00,        /*     Logical Minimum (0)                */
   0x25, 0x01,        /*     Logical Maximum (1)                */
   0x75, 0x01,        /*     Report Size (1)                    */
   0x95, 0x02,        /*     Report Count (2)                   */
-  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+  0xB1, 0x02,        /*     Feature (Data,Var,Abs)             */
   0x75, 0x06,        /*     Report Size (6)                    */
   0x95, 0x01,        /*     Report Count (1)                   */
-  0x81, 0x01,        /*     Input (Const,Array,Abs) - padding  */
+  0xB1, 0x01,        /*     Feature (Const) - padding          */
 
-  /* Static battery capacity fields */
+  /* FEATURE: Static capacity fields (4 bytes) */
   0x09, 0x83,        /*     Usage (DesignCapacity)             */
   0x09, 0x67,        /*     Usage (FullChargeCapacity)         */
   0x15, 0x00,        /*     Logical Minimum (0)                */
@@ -184,9 +184,9 @@ __ALIGN_END =
   0x95, 0x02,        /*     Report Count (2)                   */
   0x67, 0x01, 0x10, 0x10, 0x00, /* Unit (mAh)                */
   0x55, 0x00,        /*     Unit Exponent (0)                  */
-  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+  0xB1, 0x02,        /*     Feature (Data,Var,Abs)             */
 
-  /* Voltage fields */
+  /* FEATURE: Voltage fields (4 bytes) */
   0x09, 0x30,        /*     Usage (Voltage)                    */
   0x05, 0x84,        /*     Usage Page (Power Device)          */
   0x09, 0x40,        /*     Usage (ConfigVoltage)              */
@@ -196,10 +196,10 @@ __ALIGN_END =
   0x75, 0x10,        /*     Report Size (16)                   */
   0x95, 0x02,        /*     Report Count (2)                   */
   0x67, 0x21, 0xD1, 0xF0, 0x00, /* Unit (Voltage)            */
-  0x55, 0x07,        /*     Unit Exponent (7) = 10^-7 V        */
-  0x81, 0x02,        /*     Input (Data,Var,Abs)               */
+  0x55, 0x07,        /*     Unit Exponent (7)                  */
+  0xB1, 0x02,        /*     Feature (Data,Var,Abs)             */
 
-  /* Dynamic battery fields with Volatile flag */
+  /* INPUT: Dynamic remaining capacity - Volatile (2 bytes) */
   0x09, 0x66,        /*     Usage (RemainingCapacity)          */
   0x15, 0x00,        /*     Logical Minimum (0)                */
   0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
@@ -209,6 +209,7 @@ __ALIGN_END =
   0x55, 0x00,        /*     Unit Exponent (0)                  */
   0x81, 0x82,        /*     Input (Data,Var,Abs,Vol)           */
 
+  /* INPUT: Dynamic runtime - Volatile (2 bytes) */
   0x09, 0x68,        /*     Usage (RunTimeToEmpty)             */
   0x15, 0x00,        /*     Logical Minimum (0)                */
   0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
@@ -218,7 +219,7 @@ __ALIGN_END =
   0x55, 0x00,        /*     Unit Exponent (0)                  */
   0x81, 0x82,        /*     Input (Data,Var,Abs,Vol)           */
 
-  /* Dynamic status flags */
+  /* INPUT: Dynamic status flags - Volatile (1 byte) */
   0x05, 0x85,        /*     Usage Page (Battery System)        */
   0x09, 0xD0,        /*     Usage (ACPresent)                  */
   0x09, 0x45,        /*     Usage (Discharging)                */
@@ -229,9 +230,9 @@ __ALIGN_END =
   0x75, 0x01,        /*     Report Size (1)                    */
   0x95, 0x04,        /*     Report Count (4)                   */
   0x81, 0x82,        /*     Input (Data,Var,Abs,Vol)           */
-  0x75, 0x0C,        /*     Report Size (12) - larger padding  */
+  0x75, 0x04,        /*     Report Size (4) - padding          */
   0x95, 0x01,        /*     Report Count (1)                   */
-  0x81, 0x01,        /*     Input (Const,Array,Abs) - padding  */
+  0x81, 0x01,        /*     Input (Const) - padding            */
 
   0xC0,              /*   End Collection (Physical)            */
   /* USER CODE END USBD_HID_UPS_ReportDesc                     */
