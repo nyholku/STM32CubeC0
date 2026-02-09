@@ -49,6 +49,9 @@ __IO uint8_t User_Button_State = 0U;
 /* Periodic report period - send report every ~2 seconds */
 #define REPORT_PERIOD_MS 2000  /* Send INPUT report every 2 seconds */
 
+/* Debug: count GET_REPORT calls from host to understand Windows polling behavior */
+static volatile uint32_t get_report_call_count = 0;
+
 /* Default battery state - INVERTED: Start with low battery (5%) to test macOS reading */
 static UPS_BatteryStateTypeDef ups_battery_state = {
   .ac_present = 0,              /* AC power NOT present - running on battery */
@@ -153,6 +156,9 @@ UINT USBD_HID_UPS_GetReport(UX_SLAVE_CLASS_HID *hid_instance,
   uint8_t config_byte = 0;
 
   UX_PARAMETER_NOT_USED(hid_instance);
+
+  /* DEBUG: Track how many times Windows calls GetReport */
+  get_report_call_count++;
 
   /* Build 9-byte FEATURE report: static battery data
    * Byte 0:    Config flags (Rechargeable, CapacityMode) + 6-bit padding
