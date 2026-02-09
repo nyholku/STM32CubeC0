@@ -210,6 +210,12 @@ UINT USBD_HID_UPS_GetReport(UX_SLAVE_CLASS_HID *hid_instance,
     status_byte |= (1 << 3);
   buf[13] = status_byte;
 
+  /* DEBUG: Capture what we sent to Windows - set breakpoint AFTER this block */
+  volatile uint16_t debug_remaining = ups_battery_state.remaining_capacity;
+  volatile uint16_t debug_full = ups_battery_state.full_charge_capacity;
+  volatile uint8_t debug_status = status_byte;
+  /* Breakpoint here and check: debug_remaining should be 360, debug_full should be 7200 */
+
   /* USER CODE END USBD_HID_UPS_GetReport */
 
   return status;
