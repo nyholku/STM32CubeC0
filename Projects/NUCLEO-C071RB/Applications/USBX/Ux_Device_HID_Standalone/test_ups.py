@@ -2,10 +2,7 @@
 """
 HID UPS Battery Monitor - STM32
 
-Static data read via FEATURE report (GET_REPORT), dynamic data via INPUT
-report (interrupt endpoint).  Each Usage appears in exactly one report type.
-
-FEATURE report (9 bytes) - polled by host via GET_REPORT:
+FEATURE report (14 bytes) - polled by host via GET_REPORT (includes all data for Windows):
   Byte 0:     Config flags (2 bits + 6 bits padding)
               bit 0: Rechargeable
               bit 1: Capacity Mode
@@ -13,15 +10,18 @@ FEATURE report (9 bytes) - polled by host via GET_REPORT:
   Bytes 3-4:  Full Charge Capacity (16-bit LE, mAh)
   Bytes 5-6:  Voltage (16-bit LE, mV)
   Bytes 7-8:  Config Voltage (16-bit LE, mV)
-
-INPUT report (5 bytes) - pushed by device every 2 s:
-  Bytes 0-1:  Remaining Capacity (16-bit LE, mAh)
-  Bytes 2-3:  Runtime to Empty (16-bit LE, minutes)
-  Byte 4:     PresentStatus flags (4 bits + 4 bits padding)
+  Bytes 9-10: Remaining Capacity (16-bit LE, mAh)
+  Bytes 11-12: Runtime to Empty (16-bit LE, minutes)
+  Byte 13:    PresentStatus flags (4 bits + 4 bits padding)
               bit 0: AC Present
               bit 1: Discharging
               bit 2: Charging
               bit 3: Below Capacity Limit
+
+INPUT report (5 bytes) - pushed by device every 2 s on interrupt endpoint (macOS uses this):
+  Bytes 0-1:  Remaining Capacity (16-bit LE, mAh)
+  Bytes 2-3:  Runtime to Empty (16-bit LE, minutes)
+  Byte 4:     PresentStatus flags (4 bits + 4 bits padding)
 """
 
 import hid
@@ -66,9 +66,9 @@ def find_ups_device(vendor_id=VENDOR_ID, product_id=PRODUCT_ID):
 
 
 def read_feature(device, show_raw=False):
-    """Read and decode the 9-byte FEATURE report (static data).
+    """Read and decode the 14-byte FEATURE report (all data).
     hidapi prepends a 0x00 byte when descriptor has no Report ID."""
-    data = device.get_feature_report(0x00, 10)  # 10 = 1 prepended + 9 data
+    data = device.get_feature_report(0x00, 15)  # 15 = 1 prepended + 14 data
 
     if show_raw:
         print(f"  Raw FEATURE ({len(data)} bytes): {' '.join(f'{b:02X}' for b in data)}")
@@ -76,12 +76,14 @@ def read_feature(device, show_raw=False):
     if data and data[0] == 0x00:
         data = data[1:]
 
-    if len(data) < 9:
+    if len(data) < 14:
         print(f"  Warning: FEATURE report too short ({len(data)} bytes)")
-        return None
+        return None, None
 
     config = data[0]
-    return {
+    flags = data[13]
+
+    static = {
         'rechargeable':         bool(config & 0x01),
         'capacity_mode':        bool(config & 0x02),
         'design_capacity':      struct.unpack_from('<H', bytes(data), 1)[0],
@@ -89,6 +91,17 @@ def read_feature(device, show_raw=False):
         'voltage':              struct.unpack_from('<H', bytes(data), 5)[0],
         'config_voltage':       struct.unpack_from('<H', bytes(data), 7)[0],
     }
+
+    dynamic = {
+        'remaining_capacity':   struct.unpack_from('<H', bytes(data), 9)[0],
+        'runtime_to_empty':     struct.unpack_from('<H', bytes(data), 11)[0],
+        'ac_present':           bool(flags & 0x01),
+        'discharging':          bool(flags & 0x02),
+        'charging':             bool(flags & 0x04),
+        'below_capacity_limit': bool(flags & 0x08),
+    }
+
+    return static, dynamic
 
 
 def decode_input(data):
@@ -183,19 +196,25 @@ def main():
         return 1
 
     try:
-        # --- FEATURE report: static data (read once) ---
-        print("Reading FEATURE report (static data)...")
-        static = read_feature(device, show_raw=args.raw)
+        # --- FEATURE report: all data (read once via GET_REPORT) ---
+        print("Reading FEATURE report (all data via GET_REPORT)...")
+        static, dynamic_from_feature = read_feature(device, show_raw=args.raw)
         if static:
             print(f"  DesignCap={static['design_capacity']} "
                   f"FullCap={static['full_charge_capacity']} "
                   f"V={static['voltage']}mV")
+            if dynamic_from_feature:
+                pct = (dynamic_from_feature['remaining_capacity'] * 100.0 /
+                       static['full_charge_capacity']) if static['full_charge_capacity'] > 0 else 0
+                print(f"  RemainingCap={dynamic_from_feature['remaining_capacity']} ({pct:.1f}%)")
         else:
             print("  Failed to read FEATURE report")
 
-        # --- INPUT report: dynamic data ---
+        # --- INPUT report: dynamic data from interrupt endpoint (optional) ---
         if args.continuous:
-            print("\nListening for INPUT reports... (Ctrl+C to stop)\n")
+            print("\nListening for INPUT reports from interrupt endpoint... (Ctrl+C to stop)\n")
+            print("(Using FEATURE data as baseline)\n")
+            print_status(static, dynamic_from_feature)
             while True:
                 try:
                     dynamic = read_input(device, show_raw=args.raw)
@@ -206,9 +225,9 @@ def main():
                     break
         else:
             # Single-shot: poll for one INPUT report with 5 s timeout
-            print("Waiting for INPUT report (timeout 5 s)...")
+            print("Waiting for INPUT report from interrupt endpoint (timeout 5 s)...")
             device.set_nonblocking(True)
-            dynamic = None
+            dynamic_from_input = None
             deadline = time.time() + 5.0
             while time.time() < deadline:
                 data = device.read(6)
@@ -218,13 +237,16 @@ def main():
                               f"{' '.join(f'{b:02X}' for b in data)}")
                     if len(data) >= 6 and data[0] == 0x00:
                         data = data[1:]
-                    dynamic = decode_input(data)
+                    dynamic_from_input = decode_input(data)
                     break
                 time.sleep(0.1)
 
-            if not dynamic:
-                print("  No INPUT report received within timeout")
-            print_status(static, dynamic)
+            if dynamic_from_input:
+                print("  Received INPUT report from interrupt endpoint")
+                print_status(static, dynamic_from_input)
+            else:
+                print("  No INPUT report from interrupt endpoint (using FEATURE data)")
+                print_status(static, dynamic_from_feature)
 
     except Exception as e:
         print(f"\nError: {e}")

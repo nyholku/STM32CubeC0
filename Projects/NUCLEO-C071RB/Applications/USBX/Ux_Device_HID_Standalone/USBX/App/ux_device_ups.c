@@ -160,15 +160,20 @@ UINT USBD_HID_UPS_GetReport(UX_SLAVE_CLASS_HID *hid_instance,
   /* DEBUG: Track how many times Windows calls GetReport */
   get_report_call_count++;
 
-  /* Build 9-byte FEATURE report: static battery data
-   * Byte 0:    Config flags (Rechargeable, CapacityMode) + 6-bit padding
-   * Bytes 1-2: DesignCapacity (16-bit LE, mAh)
-   * Bytes 3-4: FullChargeCapacity (16-bit LE, mAh)
-   * Bytes 5-6: Voltage (16-bit LE, mV)
-   * Bytes 7-8: ConfigVoltage (16-bit LE, mV)
+  /* Build 14-byte FEATURE report: all battery data for Windows GET_REPORT
+   * Windows calls this once and never again, so must include dynamic data too.
+   * Byte 0:     Config flags (Rechargeable, CapacityMode) + 6-bit padding
+   * Bytes 1-2:  DesignCapacity (16-bit LE, mAh)
+   * Bytes 3-4:  FullChargeCapacity (16-bit LE, mAh)
+   * Bytes 5-6:  Voltage (16-bit LE, mV)
+   * Bytes 7-8:  ConfigVoltage (16-bit LE, mV)
+   * Bytes 9-10: RemainingCapacity (16-bit LE, mAh) - DYNAMIC
+   * Bytes 11-12: RunTimeToEmpty (16-bit LE, minutes) - DYNAMIC
+   * Byte 13:    Status flags (4 bits) + padding (4 bits) - DYNAMIC
    */
-  hid_event->ux_device_class_hid_event_length = 9;
+  hid_event->ux_device_class_hid_event_length = 14;
 
+  /* Static fields */
   if (ups_battery_state.rechargeable)
     config_byte |= (1 << 0);
   if (ups_battery_state.capacity_mode)
@@ -186,6 +191,24 @@ UINT USBD_HID_UPS_GetReport(UX_SLAVE_CLASS_HID *hid_instance,
 
   buf[7] = (uint8_t)(ups_battery_state.config_voltage & 0xFF);
   buf[8] = (uint8_t)((ups_battery_state.config_voltage >> 8) & 0xFF);
+
+  /* Dynamic fields */
+  buf[9] = (uint8_t)(ups_battery_state.remaining_capacity & 0xFF);
+  buf[10] = (uint8_t)((ups_battery_state.remaining_capacity >> 8) & 0xFF);
+
+  buf[11] = (uint8_t)(ups_battery_state.runtime_to_empty & 0xFF);
+  buf[12] = (uint8_t)((ups_battery_state.runtime_to_empty >> 8) & 0xFF);
+
+  uint8_t status_byte = 0;
+  if (ups_battery_state.ac_present)
+    status_byte |= (1 << 0);
+  if (ups_battery_state.discharging)
+    status_byte |= (1 << 1);
+  if (ups_battery_state.charging)
+    status_byte |= (1 << 2);
+  if (ups_battery_state.below_capacity_limit)
+    status_byte |= (1 << 3);
+  buf[13] = status_byte;
 
   /* USER CODE END USBD_HID_UPS_GetReport */
 

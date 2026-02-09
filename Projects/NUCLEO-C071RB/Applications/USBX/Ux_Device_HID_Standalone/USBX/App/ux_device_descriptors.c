@@ -199,7 +199,40 @@ __ALIGN_END =
   0x55, 0x07,        /*     Unit Exponent (7)                  */
   0xB1, 0x02,        /*     Feature (Data,Var,Abs)             */
 
-  /* INPUT: Dynamic remaining capacity - Volatile (2 bytes) */
+  /* FEATURE: Dynamic fields with Volatile flag (5 bytes) - also in FEATURE for Windows */
+  0x09, 0x66,        /*     Usage (RemainingCapacity)          */
+  0x15, 0x00,        /*     Logical Minimum (0)                */
+  0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
+  0x75, 0x10,        /*     Report Size (16)                   */
+  0x95, 0x01,        /*     Report Count (1)                   */
+  0x67, 0x01, 0x10, 0x10, 0x00, /* Unit (mAh)                */
+  0x55, 0x00,        /*     Unit Exponent (0)                  */
+  0xB1, 0x82,        /*     Feature (Data,Var,Abs,Vol)         */
+
+  0x09, 0x68,        /*     Usage (RunTimeToEmpty)             */
+  0x15, 0x00,        /*     Logical Minimum (0)                */
+  0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
+  0x75, 0x10,        /*     Report Size (16)                   */
+  0x95, 0x01,        /*     Report Count (1)                   */
+  0x66, 0x01, 0x10,  /*     Unit (Seconds)                     */
+  0x55, 0x00,        /*     Unit Exponent (0)                  */
+  0xB1, 0x82,        /*     Feature (Data,Var,Abs,Vol)         */
+
+  0x05, 0x85,        /*     Usage Page (Battery System)        */
+  0x09, 0xD0,        /*     Usage (ACPresent)                  */
+  0x09, 0x45,        /*     Usage (Discharging)                */
+  0x09, 0x44,        /*     Usage (Charging)                   */
+  0x09, 0x42,        /*     Usage (BelowCapacityLimit)         */
+  0x15, 0x00,        /*     Logical Minimum (0)                */
+  0x25, 0x01,        /*     Logical Maximum (1)                */
+  0x75, 0x01,        /*     Report Size (1)                    */
+  0x95, 0x04,        /*     Report Count (4)                   */
+  0xB1, 0x82,        /*     Feature (Data,Var,Abs,Vol)         */
+  0x75, 0x04,        /*     Report Size (4) - padding          */
+  0x95, 0x01,        /*     Report Count (1)                   */
+  0xB1, 0x01,        /*     Feature (Const) - padding          */
+
+  /* INPUT: Same dynamic fields for macOS interrupt endpoint (5 bytes) */
   0x09, 0x66,        /*     Usage (RemainingCapacity)          */
   0x15, 0x00,        /*     Logical Minimum (0)                */
   0x27, 0xFF, 0xFF, 0x00, 0x00, /* Logical Maximum (65535)   */
