@@ -160,7 +160,7 @@ UINT USBD_HID_UPS_GetReport(UX_SLAVE_CLASS_HID *hid_instance,
   /* DEBUG: Track how many times Windows calls GetReport */
   get_report_call_count++;
 
-  /* Build 14-byte FEATURE report: all battery data for Windows GET_REPORT
+  /* Build 15-byte FEATURE report: all battery data for Windows GET_REPORT
    * Windows calls this once and never again, so must include dynamic data too.
    * Byte 0:     Config flags (Rechargeable, CapacityMode) + 6-bit padding
    * Bytes 1-2:  DesignCapacity (16-bit LE, mAh)
@@ -169,9 +169,10 @@ UINT USBD_HID_UPS_GetReport(UX_SLAVE_CLASS_HID *hid_instance,
    * Bytes 7-8:  ConfigVoltage (16-bit LE, mV)
    * Bytes 9-10: RemainingCapacity (16-bit LE, mAh) - DYNAMIC
    * Bytes 11-12: RunTimeToEmpty (16-bit LE, minutes) - DYNAMIC
-   * Byte 13:    Status flags (4 bits) + padding (4 bits) - DYNAMIC
+   * Byte 13:    RelativeStateOfCharge (8-bit, 0-100%) - DYNAMIC, direct percentage for Windows
+   * Byte 14:    Status flags (4 bits) + padding (4 bits) - DYNAMIC
    */
-  hid_event->ux_device_class_hid_event_length = 14;
+  hid_event->ux_device_class_hid_event_length = 15;
 
   /* Static fields */
   if (ups_battery_state.rechargeable)
@@ -199,6 +200,14 @@ UINT USBD_HID_UPS_GetReport(UX_SLAVE_CLASS_HID *hid_instance,
   buf[11] = (uint8_t)(ups_battery_state.runtime_to_empty & 0xFF);
   buf[12] = (uint8_t)((ups_battery_state.runtime_to_empty >> 8) & 0xFF);
 
+  /* Calculate percentage (0-100) for RelativeStateOfCharge */
+  uint8_t percentage = 0;
+  if (ups_battery_state.full_charge_capacity > 0) {
+    uint32_t pct = ((uint32_t)ups_battery_state.remaining_capacity * 100) / ups_battery_state.full_charge_capacity;
+    percentage = (pct > 100) ? 100 : (uint8_t)pct;
+  }
+  buf[13] = percentage;
+
   uint8_t status_byte = 0;
   if (ups_battery_state.ac_present)
     status_byte |= (1 << 0);
@@ -208,13 +217,14 @@ UINT USBD_HID_UPS_GetReport(UX_SLAVE_CLASS_HID *hid_instance,
     status_byte |= (1 << 2);
   if (ups_battery_state.below_capacity_limit)
     status_byte |= (1 << 3);
-  buf[13] = status_byte;
+  buf[14] = status_byte;
 
   /* DEBUG: Capture what we sent to Windows - set breakpoint AFTER this block */
   volatile uint16_t debug_remaining = ups_battery_state.remaining_capacity;
   volatile uint16_t debug_full = ups_battery_state.full_charge_capacity;
+  volatile uint8_t debug_percentage = percentage;
   volatile uint8_t debug_status = status_byte;
-  /* Breakpoint here and check: debug_remaining should be 360, debug_full should be 7200 */
+  /* Breakpoint here: debug_remaining=360, debug_full=7200, debug_percentage=5 for 5% */
 
   /* USER CODE END USBD_HID_UPS_GetReport */
 

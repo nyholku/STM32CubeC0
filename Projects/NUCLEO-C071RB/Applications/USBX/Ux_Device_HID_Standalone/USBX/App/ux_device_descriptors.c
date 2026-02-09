@@ -218,6 +218,16 @@ __ALIGN_END =
   0x55, 0x00,        /*     Unit Exponent (0)                  */
   0xB1, 0x82,        /*     Feature (Data,Var,Abs,Vol)         */
 
+  /* FEATURE: RelativeStateOfCharge (1 byte) - direct percentage for Windows */
+  0x09, 0x8D,        /*     Usage (RelativeStateOfCharge)      */
+  0x15, 0x00,        /*     Logical Minimum (0)                */
+  0x25, 0x64,        /*     Logical Maximum (100)              */
+  0x75, 0x08,        /*     Report Size (8)                    */
+  0x95, 0x01,        /*     Report Count (1)                   */
+  0x65, 0x00,        /*     Unit (None)                        */
+  0x55, 0x00,        /*     Unit Exponent (0)                  */
+  0xB1, 0x82,        /*     Feature (Data,Var,Abs,Vol)         */
+
   0x05, 0x85,        /*     Usage Page (Battery System)        */
   0x09, 0xD0,        /*     Usage (ACPresent)                  */
   0x09, 0x45,        /*     Usage (Discharging)                */

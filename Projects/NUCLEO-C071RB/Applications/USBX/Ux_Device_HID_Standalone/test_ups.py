@@ -2,7 +2,7 @@
 """
 HID UPS Battery Monitor - STM32
 
-FEATURE report (14 bytes) - polled by host via GET_REPORT (includes all data for Windows):
+FEATURE report (15 bytes) - polled by host via GET_REPORT (includes all data for Windows):
   Byte 0:     Config flags (2 bits + 6 bits padding)
               bit 0: Rechargeable
               bit 1: Capacity Mode
@@ -12,7 +12,8 @@ FEATURE report (14 bytes) - polled by host via GET_REPORT (includes all data for
   Bytes 7-8:  Config Voltage (16-bit LE, mV)
   Bytes 9-10: Remaining Capacity (16-bit LE, mAh)
   Bytes 11-12: Runtime to Empty (16-bit LE, minutes)
-  Byte 13:    PresentStatus flags (4 bits + 4 bits padding)
+  Byte 13:    Relative State Of Charge (8-bit, 0-100%)
+  Byte 14:    PresentStatus flags (4 bits + 4 bits padding)
               bit 0: AC Present
               bit 1: Discharging
               bit 2: Charging
@@ -66,9 +67,9 @@ def find_ups_device(vendor_id=VENDOR_ID, product_id=PRODUCT_ID):
 
 
 def read_feature(device, show_raw=False):
-    """Read and decode the 14-byte FEATURE report (all data).
+    """Read and decode the 15-byte FEATURE report (all data including percentage).
     hidapi prepends a 0x00 byte when descriptor has no Report ID."""
-    data = device.get_feature_report(0x00, 15)  # 15 = 1 prepended + 14 data
+    data = device.get_feature_report(0x00, 16)  # 16 = 1 prepended + 15 data
 
     if show_raw:
         print(f"  Raw FEATURE ({len(data)} bytes): {' '.join(f'{b:02X}' for b in data)}")
@@ -76,12 +77,13 @@ def read_feature(device, show_raw=False):
     if data and data[0] == 0x00:
         data = data[1:]
 
-    if len(data) < 14:
+    if len(data) < 15:
         print(f"  Warning: FEATURE report too short ({len(data)} bytes)")
         return None, None
 
     config = data[0]
-    flags = data[13]
+    percentage = data[13]
+    flags = data[14]
 
     static = {
         'rechargeable':         bool(config & 0x01),
@@ -95,6 +97,7 @@ def read_feature(device, show_raw=False):
     dynamic = {
         'remaining_capacity':   struct.unpack_from('<H', bytes(data), 9)[0],
         'runtime_to_empty':     struct.unpack_from('<H', bytes(data), 11)[0],
+        'percentage':           percentage,
         'ac_present':           bool(flags & 0x01),
         'discharging':          bool(flags & 0x02),
         'charging':             bool(flags & 0x04),
@@ -204,9 +207,8 @@ def main():
                   f"FullCap={static['full_charge_capacity']} "
                   f"V={static['voltage']}mV")
             if dynamic_from_feature:
-                pct = (dynamic_from_feature['remaining_capacity'] * 100.0 /
-                       static['full_charge_capacity']) if static['full_charge_capacity'] > 0 else 0
-                print(f"  RemainingCap={dynamic_from_feature['remaining_capacity']} ({pct:.1f}%)")
+                print(f"  RemainingCap={dynamic_from_feature['remaining_capacity']} "
+                      f"RelativeSOC={dynamic_from_feature['percentage']}%")
         else:
             print("  Failed to read FEATURE report")
 
